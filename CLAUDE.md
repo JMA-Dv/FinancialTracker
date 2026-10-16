@@ -31,11 +31,14 @@ It provides features such as expense categorization, financial reports, and visu
 - Prefer interfaces over types for objects
 - Use explicit return types for public functions
 - No `any` - use `unknown` if truly dynamic
--
+
+## Vue Style
+
+- Composition API
 
 ## C# Style
 
-- Follow PascalCase for component names, method names, and public members.
+- Follow PascalCase for component names, method names, and public members for non-test projects.
 - Use camelCase for private fields and local variables.
 - Prefix interface names with "I" (e.g., IUserService).
 -
@@ -44,7 +47,6 @@ It provides features such as expense categorization, financial reports, and visu
 - Demonstrate how to organize code using feature folders or domain-driven design principles.
 - Show proper separation of concerns with models, services, and data access layers.
 - Use Microsoft.Extensions.DependencyInjection patterns
-- Use
 - Register services with appropriate lifetimes (Singleton, Scoped, Transient)
 
 ## Communication

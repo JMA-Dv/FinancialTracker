@@ -1,5 +1,6 @@
-using System.ComponentModel.DataAnnotations;
 using FinancialTracker.Infrastructure.Identity;
+using Microsoft.AspNetCore.Authentication;
+using Microsoft.AspNetCore.Authentication.Google;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
@@ -8,46 +9,51 @@ namespace FinancialTracker.Api.Features.Auth;
 
 [ApiController]
 [Route("api/auth")]
-public class AuthController(UserManager<User> userManager, SignInManager<User> signInManager)
+public class AuthController(
+    UserManager<User> userManager,
+    SignInManager<User> signInManager,
+    GoogleUsers googleUsers)
     : ControllerBase
 {
-    [HttpPost("sign-up")]
+    /// <summary>Sends the browser to Google. Google is the only way to sign in (ADR 0002).</summary>
+    [HttpGet("google/sign-in")]
     [AllowAnonymous]
-    public async Task<IActionResult> SignUp(SignUpRequest request)
+    public IActionResult SignInWithGoogle([FromQuery] string? returnUrl)
     {
-        var user = new User { UserName = request.Email, Email = request.Email };
-        var result = await userManager.CreateAsync(user, request.Password);
+        var callbackUrl = Url.Action(nameof(GoogleCallback), new { returnUrl = LocalOrRoot(returnUrl) });
+        var properties = signInManager.ConfigureExternalAuthenticationProperties(
+            GoogleDefaults.AuthenticationScheme, callbackUrl);
 
-        if (!result.Succeeded)
-        {
-            foreach (var error in result.Errors)
-            {
-                ModelState.AddModelError(error.Code, error.Description);
-            }
-
-            return ValidationProblem(ModelState);
-        }
-
-        return StatusCode(StatusCodes.Status201Created);
+        return Challenge(properties, GoogleDefaults.AuthenticationScheme);
     }
 
-    [HttpPost("sign-in")]
+    /// <summary>Where the browser lands after Google: signs the User in, creating them the first time.</summary>
+    [HttpGet("google/callback")]
     [AllowAnonymous]
-    public async Task<IActionResult> SignIn(SignInRequest request)
+    public async Task<IActionResult> GoogleCallback([FromQuery] string? returnUrl)
     {
-        var result = await signInManager.PasswordSignInAsync(
-            request.Email, request.Password, isPersistent: false, lockoutOnFailure: false);
-
-        if (!result.Succeeded)
+        var googleLogin = await signInManager.GetExternalLoginInfoAsync();
+        if (googleLogin is null)
         {
-            // Same answer for an unknown email and a wrong password, so emails can't be probed.
             return Problem(
                 statusCode: StatusCodes.Status401Unauthorized,
-                title: "Sign-in failed",
-                detail: "The email or password is incorrect.");
+                title: "Google sign-in failed",
+                detail: "Start again from Google sign-in.");
         }
 
-        return NoContent();
+        var user = await googleUsers.FindOrCreateAsync(googleLogin);
+        if (user is null)
+        {
+            return Problem(
+                statusCode: StatusCodes.Status400BadRequest,
+                title: "Google sign-in failed",
+                detail: "Google didn't share an email address for this account.");
+        }
+
+        await HttpContext.SignOutAsync(IdentityConstants.ExternalScheme);
+        await signInManager.SignInAsync(user, isPersistent: false, authenticationMethod: googleLogin.LoginProvider);
+
+        return LocalRedirect(LocalOrRoot(returnUrl));
     }
 
     [HttpPost("sign-out")]
@@ -64,8 +70,8 @@ public class AuthController(UserManager<User> userManager, SignInManager<User> s
         await signInManager.SignOutAsync();
         return NoContent();
     }
+
+    // Only ever return to this site, so sign-in can't be used as an open redirect.
+    private string LocalOrRoot(string? returnUrl) =>
+        returnUrl is not null && Url.IsLocalUrl(returnUrl) ? returnUrl : "/";
 }
-
-public sealed record SignUpRequest([Required, EmailAddress] string Email, [Required] string Password);
-
-public sealed record SignInRequest([Required] string Email, [Required] string Password);

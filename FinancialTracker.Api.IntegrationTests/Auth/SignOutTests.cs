@@ -24,13 +24,11 @@ public sealed class SignOutTests(ApiFactory api)
     [Fact]
     public async Task The_cookie_a_User_held_before_signing_out_no_longer_grants_access()
     {
+        var callback = await api.CreateAnonymousClient().SignInWithGoogleAsync(GoogleAccount.New());
+        var authCookie = AuthHttpClientExtensions.AuthCookieFrom(callback);
+
         // Handle the cookie by hand so it can be replayed after the browser would have dropped it.
         var client = api.CreateClient(new WebApplicationFactoryClientOptions { HandleCookies = false });
-        var credentials = Credentials.New();
-        await client.SignUpAsync(credentials);
-        var signIn = await client.PostSignInAsync(credentials);
-        var authCookie = signIn.Headers.GetValues("Set-Cookie").Single().Split(';')[0];
-
         Assert.Equal(HttpStatusCode.OK, (await SendWithCookie(client, HttpMethod.Get, LedgerEndpoint, authCookie)).StatusCode);
 
         var signOut = await SendWithCookie(client, HttpMethod.Post, "/api/auth/sign-out", authCookie);

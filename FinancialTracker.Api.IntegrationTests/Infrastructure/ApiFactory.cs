@@ -1,7 +1,10 @@
 using FinancialTracker.Infrastructure;
 using FinancialTracker.Infrastructure.Persistence;
 using Microsoft.AspNetCore.Hosting;
+using Microsoft.AspNetCore.Authentication;
+using Microsoft.AspNetCore.Authentication.Google;
 using Microsoft.AspNetCore.Mvc.Testing;
+using Microsoft.AspNetCore.TestHost;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Testcontainers.PostgreSql;
@@ -35,21 +38,32 @@ public sealed class ApiFactory : WebApplicationFactory<Program>, IAsyncLifetime
     public HttpClient CreateAnonymousClient() =>
         CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false });
 
-    /// <summary>A brand-new User, signed up and signed in, with the auth cookie held by the client.</summary>
+    /// <summary>A brand-new Google account, signed in for the first time, with the auth cookie held by the client.</summary>
     public async Task<SignedInUser> CreateSignedInUserAsync()
     {
         var client = CreateAnonymousClient();
-        var credentials = Credentials.New();
+        var google = GoogleAccount.New();
 
-        await client.SignUpAsync(credentials);
-        await client.SignInAsync(credentials);
+        var callback = await client.SignInWithGoogleAsync(google);
+        if (callback.StatusCode is not System.Net.HttpStatusCode.Redirect)
+        {
+            throw new HttpRequestException($"Google sign-in failed: {(int)callback.StatusCode} {await callback.Content.ReadAsStringAsync()}");
+        }
 
-        return new SignedInUser(client, credentials);
+        return new SignedInUser(client, google);
     }
 
     protected override void ConfigureWebHost(IWebHostBuilder builder)
     {
         builder.UseSetting($"ConnectionStrings:{DependencyInjection.ConnectionStringName}", database.GetConnectionString());
+        builder.UseSetting("Authentication:Google:ClientId", "test-client-id");
+        builder.UseSetting("Authentication:Google:ClientSecret", "test-client-secret");
+
+        // Google itself is never called: its scheme is served by a fake that signs in whichever
+        // Google account the test names.
+        builder.ConfigureTestServices(services =>
+            services.Configure<AuthenticationOptions>(options =>
+                options.SchemeMap[GoogleDefaults.AuthenticationScheme].HandlerType = typeof(FakeGoogleHandler)));
     }
 }
 
