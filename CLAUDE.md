@@ -15,7 +15,7 @@ It provides features such as expense categorization, financial reports, and visu
 ## Tech Stack
 
 - Frontend: Vuejs 3 with Vite,typescript, Element plus, and Chart.js for data visualization, pinia.
-- Backend : .Net 10 Api with Entity Framework Core for database management and RESTful API development.
+- Backend : .Net 10 Api with Entity Framework Core for database management and RESTful API development following Clean Architecture principles.
 - Testing: xUnit for unit testing and integration testing of the backend API.
 - Database: NeonPostgres.
 - Containerization: Docker for containerizing the application and its dependencies for easy deployment and scalability.
@@ -34,7 +34,18 @@ It provides features such as expense categorization, financial reports, and visu
 
 ## Vue Style
 
-- Composition API
+- Prefer `<script setup lang="ts">` for new components
+- Keep props and emits explicitly typed; avoid implicit event contracts
+- Use composables for shared logic; avoid logic duplication across components
+- Keep components focused; separate UI from orchestration when complexity grows
+- Use Pinia for cross-component state, not for every local interaction
+- Use `computed` and `watch` intentionally; avoid broad/deep watchers unless justified
+- Handle loading, empty, success, and error states explicitly in UI flows
+- Use route-level code splitting and lazy-loaded feature modules
+- Avoid direct DOM manipulation unless required and isolated
+- Ensure interactive controls are keyboard accessible and screen-reader friendly
+- Prefer predictable, deterministic rendering to reduce hydration and SSR issues
+- For legacy code, offer incremental migration from Options API/Vue 2 toward Vue 3 Composition API
 
 ## C# Style
 
@@ -68,8 +79,11 @@ It provides features such as expense categorization, financial reports, and visu
 
 ## Git
 
-- Do not stage changes
-- Do not commit changes.
+### Branching standards
+
+- Features `feature-{Feature name}`
+- Hot Fixes `hf-{HotfixName}` (like typos,text changes or any minimal fix)
+- Bug Fixes `bf-{BugFixName}`. Mayor bug fixes
 
 ## Agent skills
 
