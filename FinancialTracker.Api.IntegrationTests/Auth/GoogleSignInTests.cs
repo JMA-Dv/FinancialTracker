@@ -47,6 +47,7 @@ public sealed class GoogleSignInTests(ApiFactory api)
         var callback = await laterDevice.SignInWithGoogleAsync(google);
 
         Assert.Equal(HttpStatusCode.Redirect, callback.StatusCode);
+        Assert.Single(await api.UserIdsForGoogleAsync(google));
         var settings = await laterDevice.GetFromJsonAsync<UserSettings>(LedgerEndpoint);
         Assert.Equal(google.Email, settings?.Email);
     }
@@ -64,6 +65,9 @@ public sealed class GoogleSignInTests(ApiFactory api)
 
         Assert.Equal(HttpStatusCode.Redirect, callback.StatusCode);
         Assert.Equal(HttpStatusCode.OK, (await client.GetAsync(LedgerEndpoint)).StatusCode);
+        Assert.NotEqual(
+            Assert.Single(await api.UserIdsForGoogleAsync(first)),
+            Assert.Single(await api.UserIdsForGoogleAsync(second)));
     }
 
     [Theory]
@@ -91,6 +95,60 @@ public sealed class GoogleSignInTests(ApiFactory api)
             && cookies.Any(cookie => cookie.StartsWith(AuthHttpClientExtensions.AuthCookieName + "=", StringComparison.Ordinal)
                 && !cookie.Contains("expires=Thu, 01 Jan 1970", StringComparison.OrdinalIgnoreCase)));
         Assert.Equal(HttpStatusCode.Unauthorized, (await client.GetAsync(LedgerEndpoint)).StatusCode);
+    }
+
+    [Fact]
+    public async Task Finishing_a_first_Google_sign_in_twice_at_once_signs_in_both_times()
+    {
+        // A double-click, or two tabs coming back from Google together, on the very first sign-in.
+        for (var round = 0; round < 5; round++)
+        {
+            var google = GoogleAccount.New();
+            var firstTab = api.CreateAnonymousClient();
+            var secondTab = api.CreateAnonymousClient();
+            var firstCallback = await firstTab.ConsentWithGoogleAsync(google);
+            var secondCallback = await secondTab.ConsentWithGoogleAsync(google);
+
+            var callbacks = await Task.WhenAll(firstTab.GetAsync(firstCallback), secondTab.GetAsync(secondCallback));
+
+            Assert.All(callbacks, callback => Assert.Equal(HttpStatusCode.Redirect, callback.StatusCode));
+            Assert.Equal(HttpStatusCode.OK, (await firstTab.GetAsync(LedgerEndpoint)).StatusCode);
+            Assert.Equal(HttpStatusCode.OK, (await secondTab.GetAsync(LedgerEndpoint)).StatusCode);
+            Assert.Single(await api.UserIdsForGoogleAsync(google));
+        }
+    }
+
+    [Fact]
+    public async Task A_User_whose_Google_email_changed_sees_the_new_email_after_signing_in_again()
+    {
+        var google = GoogleAccount.New();
+        await api.CreateAnonymousClient().SignInWithGoogleAsync(google);
+        var userId = Assert.Single(await api.UserIdsForGoogleAsync(google));
+        var changed = google with { Email = $"renamed-{Guid.NewGuid():N}@example.test" };
+        var client = api.CreateAnonymousClient();
+
+        await client.SignInWithGoogleAsync(changed);
+
+        var settings = await client.GetFromJsonAsync<UserSettings>(LedgerEndpoint);
+        Assert.Equal(changed.Email, settings?.Email);
+        Assert.Equal(userId, Assert.Single(await api.UserIdsForGoogleAsync(changed)));
+    }
+
+    [Fact]
+    public async Task A_failed_Google_sign_in_leaves_nothing_signed_in_behind()
+    {
+        var client = api.CreateAnonymousClient();
+        var callbackUrl = await client.ConsentWithGoogleAsync(GoogleAccount.New() with { Email = "" });
+
+        var failed = await client.GetAsync(callbackUrl);
+        var retried = await client.GetAsync(callbackUrl);
+
+        Assert.Equal(HttpStatusCode.BadRequest, failed.StatusCode);
+        Assert.DoesNotContain(failed.Headers.GetValues("Set-Cookie"), cookie =>
+            cookie.StartsWith(AuthHttpClientExtensions.AuthCookieName + "=", StringComparison.Ordinal));
+        Assert.Contains(failed.Headers.GetValues("Set-Cookie"), cookie =>
+            cookie.StartsWith(AuthHttpClientExtensions.GoogleCookieName + "=;", StringComparison.Ordinal));
+        Assert.Equal(HttpStatusCode.Unauthorized, retried.StatusCode);
     }
 
     private sealed record UserSettings(string Email);

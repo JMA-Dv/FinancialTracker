@@ -53,6 +53,17 @@ public sealed class ApiFactory : WebApplicationFactory<Program>, IAsyncLifetime
         return new SignedInUser(client, google);
     }
 
+    /// <summary>The ids of every User the Google account signs in as. One, once it has signed in.</summary>
+    public async Task<IReadOnlyList<Guid>> UserIdsForGoogleAsync(GoogleAccount google)
+    {
+        using var scope = Services.CreateScope();
+        var dbContext = scope.ServiceProvider.GetRequiredService<FinanceDbContext>();
+        return await dbContext.UserLogins
+            .Where(login => login.LoginProvider == GoogleDefaults.AuthenticationScheme && login.ProviderKey == google.Subject)
+            .Select(login => login.UserId)
+            .ToListAsync();
+    }
+
     protected override void ConfigureWebHost(IWebHostBuilder builder)
     {
         builder.UseSetting($"ConnectionStrings:{DependencyInjection.ConnectionStringName}", database.GetConnectionString());

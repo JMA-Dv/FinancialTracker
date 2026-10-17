@@ -33,6 +33,11 @@ public class AuthController(
     public async Task<IActionResult> GoogleCallback([FromQuery] string? returnUrl)
     {
         var googleLogin = await signInManager.GetExternalLoginInfoAsync();
+
+        // The Google cookie only carries the account to this callback. Drop it whatever happens next,
+        // so a failed sign-in can't be picked up again later.
+        await HttpContext.SignOutAsync(IdentityConstants.ExternalScheme);
+
         if (googleLogin is null)
         {
             return Problem(
@@ -50,7 +55,6 @@ public class AuthController(
                 detail: "Google didn't share an email address for this account.");
         }
 
-        await HttpContext.SignOutAsync(IdentityConstants.ExternalScheme);
         await signInManager.SignInAsync(user, isPersistent: false, authenticationMethod: googleLogin.LoginProvider);
 
         return LocalRedirect(LocalOrRoot(returnUrl));

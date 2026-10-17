@@ -1,4 +1,5 @@
 using System.Net;
+using Microsoft.AspNetCore.Identity;
 
 namespace FinancialTracker.Api.IntegrationTests.Infrastructure;
 
@@ -13,16 +14,30 @@ public sealed record SignedInUser(HttpClient Client, GoogleAccount Google);
 
 public static class AuthHttpClientExtensions
 {
-    public const string AuthCookieName = ".AspNetCore.Identity.Application";
+    // Cookie authentication names a cookie ".AspNetCore." + its scheme, but Identity names its
+    // external (Google) cookie after the scheme alone.
+    public static readonly string AuthCookieName = ".AspNetCore." + IdentityConstants.ApplicationScheme;
+    public static readonly string GoogleCookieName = IdentityConstants.ExternalScheme;
 
     /// <summary>Starts the Google sign-in flow as the given account and follows it to the app's callback.</summary>
     public static async Task<HttpResponseMessage> SignInWithGoogleAsync(
+        this HttpClient client, GoogleAccount account, string returnUrl = "/") =>
+        await client.GetAsync(await client.ConsentWithGoogleAsync(account, returnUrl));
+
+    /// <summary>
+    /// Goes through Google as the given account and returns the app callback the browser is sent to,
+    /// without following it. An empty email means Google shares none.
+    /// </summary>
+    public static async Task<Uri> ConsentWithGoogleAsync(
         this HttpClient client, GoogleAccount account, string returnUrl = "/")
     {
         var challenge = new HttpRequestMessage(
             HttpMethod.Get, $"/api/auth/google/sign-in?returnUrl={Uri.EscapeDataString(returnUrl)}");
         challenge.Headers.Add(FakeGoogleHandler.SubjectHeader, account.Subject);
-        challenge.Headers.Add(FakeGoogleHandler.EmailHeader, account.Email);
+        if (account.Email.Length > 0)
+        {
+            challenge.Headers.Add(FakeGoogleHandler.EmailHeader, account.Email);
+        }
 
         var toGoogle = await client.SendAsync(challenge);
         if (toGoogle.StatusCode is not HttpStatusCode.Redirect || toGoogle.Headers.Location is null)
@@ -31,7 +46,7 @@ public static class AuthHttpClientExtensions
             throw new HttpRequestException($"Expected a redirect to the callback, got {(int)toGoogle.StatusCode}: {body}");
         }
 
-        return await client.GetAsync(toGoogle.Headers.Location);
+        return toGoogle.Headers.Location;
     }
 
     public static Task<HttpResponseMessage> PostSignOutAsync(this HttpClient client) =>

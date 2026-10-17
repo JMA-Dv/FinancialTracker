@@ -19,12 +19,21 @@ public static class AuthenticationSetup
             {
                 options.SignInScheme = IdentityConstants.ExternalScheme;
 
-                // Declined consent or a broken round trip: answer like any failed sign-in.
-                options.Events.OnRemoteFailure = context =>
+                // Declined consent, or a broken round trip (wrong client secret, sign-in over plain http).
+                // Log why, so a misconfiguration can be told apart from a visitor saying no.
+                options.Events.OnRemoteFailure = async context =>
                 {
-                    context.Response.StatusCode = StatusCodes.Status401Unauthorized;
+                    var logger = context.HttpContext.RequestServices
+                        .GetRequiredService<ILoggerFactory>()
+                        .CreateLogger(typeof(AuthenticationSetup));
+                    logger.LogWarning(context.Failure, "Google sign-in failed on the way back from Google.");
+
                     context.HandleResponse();
-                    return Task.CompletedTask;
+                    await Results.Problem(
+                            statusCode: StatusCodes.Status401Unauthorized,
+                            title: "Google sign-in failed",
+                            detail: "Google sign-in was cancelled or didn't complete. Start again from Google sign-in.")
+                        .ExecuteAsync(context.HttpContext);
                 };
             })
             .AddIdentityCookies();
