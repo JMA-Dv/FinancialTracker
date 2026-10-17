@@ -1,5 +1,4 @@
 using FinancialTracker.Infrastructure.Identity;
-using FinancialTracker.Infrastructure.Persistence;
 using Microsoft.AspNetCore.Authentication.Google;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
@@ -44,12 +43,9 @@ public static class AuthenticationSetup
             .BindConfiguration(GoogleSectionName)
             .ValidateOnStart();
 
-        // Users are identified by their Google account id; the email is display-only and not unique.
+        // Infrastructure registers Identity's stores; signing in with cookies is this host's part.
         services.AddIdentityCore<User>()
-            .AddSignInManager()
-            .AddEntityFrameworkStores<FinanceDbContext>();
-
-        services.AddScoped<GoogleUsers>();
+            .AddSignInManager();
 
         // Check the security stamp on every request so a signed-out cookie stops working immediately.
         services.Configure<SecurityStampValidatorOptions>(options => options.ValidationInterval = TimeSpan.Zero);

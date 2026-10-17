@@ -1,3 +1,6 @@
+using System.Security.Claims;
+using FinancialTracker.Application.Users;
+using FinancialTracker.Domain.Users;
 using FinancialTracker.Infrastructure.Identity;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Google;
@@ -12,7 +15,7 @@ namespace FinancialTracker.Api.Features.Auth;
 public class AuthController(
     UserManager<User> userManager,
     SignInManager<User> signInManager,
-    GoogleUsers googleUsers)
+    SignInWithGoogle signInWithGoogle)
     : ControllerBase
 {
     /// <summary>Sends the browser to Google. Google is the only way to sign in (ADR 0002).</summary>
@@ -46,8 +49,9 @@ public class AuthController(
                 detail: "Start again from Google sign-in.");
         }
 
-        var user = await googleUsers.FindOrCreateAsync(googleLogin);
-        if (user is null)
+        var google = new GoogleAccount(googleLogin.ProviderKey, googleLogin.Principal.FindFirstValue(ClaimTypes.Email));
+        var userId = await signInWithGoogle.ExecuteAsync(google);
+        if (userId is null)
         {
             return Problem(
                 statusCode: StatusCodes.Status400BadRequest,
@@ -55,6 +59,8 @@ public class AuthController(
                 detail: "Google didn't share an email address for this account.");
         }
 
+        var user = await userManager.FindByIdAsync(userId.Value.ToString())
+            ?? throw new InvalidOperationException($"User {userId} was signed in but does not exist.");
         await signInManager.SignInAsync(user, isPersistent: false, authenticationMethod: googleLogin.LoginProvider);
 
         return LocalRedirect(LocalOrRoot(returnUrl));

@@ -1,3 +1,5 @@
+using FinancialTracker.Application.Users;
+using FinancialTracker.Infrastructure.Identity;
 using FinancialTracker.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
@@ -23,6 +25,11 @@ public static class DependencyInjection
 
             options.UseNpgsql(connectionString);
         });
+
+        // Users are identified by their Google account id; the email is display-only and not unique.
+        services.AddIdentityCore<User>()
+            .AddEntityFrameworkStores<FinanceDbContext>();
+        services.AddScoped<IGoogleUserStore, IdentityGoogleUserStore>();
 
         return services;
     }

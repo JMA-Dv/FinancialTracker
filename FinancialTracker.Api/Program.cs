@@ -1,8 +1,10 @@
 using FinancialTracker.Api.Features.Auth;
+using FinancialTracker.Application;
 using FinancialTracker.Infrastructure;
 
 var builder = WebApplication.CreateBuilder(args);
 
+builder.Services.AddApplication();
 builder.Services.AddInfrastructure();
 builder.Services.AddCookieAuthentication();
 builder.Services.AddControllers();
