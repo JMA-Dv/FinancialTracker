@@ -1,6 +1,13 @@
-@FinancialTracker.Api_HostAddress = http://localhost:5065
+@FinancialTracker.Api_HostAddress = https://localhost:7204
 
-GET {{FinancialTracker.Api_HostAddress}}/weatherforecast/
+# Sign in with Google in a browser (it's a redirect flow, not a request you can send from here):
+#   https://localhost:7204/api/auth/google/sign-in?returnUrl=/api/user-settings
+
+GET {{FinancialTracker.Api_HostAddress}}/api/user-settings
 Accept: application/json
+
+###
+
+POST {{FinancialTracker.Api_HostAddress}}/api/auth/sign-out
 
 ###
