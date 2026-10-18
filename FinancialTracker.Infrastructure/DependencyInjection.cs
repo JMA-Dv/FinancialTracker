@@ -1,3 +1,4 @@
+using FinancialTracker.Application.Accounts;
 using FinancialTracker.Application.UserSettings;
 using FinancialTracker.Application.Users;
 using FinancialTracker.Infrastructure.Identity;
@@ -32,6 +33,7 @@ public static class DependencyInjection
             .AddEntityFrameworkStores<FinanceDbContext>();
         services.AddScoped<IGoogleUserStore, IdentityGoogleUserStore>();
         services.AddScoped<IUserSettingsStore, UserSettingsStore>();
+        services.AddScoped<IAccountStore, AccountStore>();
 
         return services;
     }
