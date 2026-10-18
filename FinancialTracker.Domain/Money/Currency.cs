@@ -4,7 +4,7 @@ using FinancialTracker.Domain.Common;
 namespace FinancialTracker.Domain.Money;
 
 /// <summary>
-/// The single unit of money a User's finances are kept in (ADR 0001), identified by its ISO 4217 code.
+/// The unit of money an Account's amounts are kept in (ADR 0003), identified by its ISO 4217 code.
 /// </summary>
 public sealed record Currency
 {

@@ -15,7 +15,7 @@ public class UserSettingsController(GetUserSettings getUserSettings, SetCurrency
         return new UserSettingsResponse(settings.Email, settings.Currency?.Code);
     }
 
-    /// <summary>Sets or changes the one Currency all the User's finances are kept in.</summary>
+    /// <summary>Sets or changes the User's Currency, the default for new Accounts.</summary>
     [HttpPut("currency")]
     public async Task<ActionResult<UserSettingsResponse>> SetCurrency(SetCurrencyRequest request)
     {

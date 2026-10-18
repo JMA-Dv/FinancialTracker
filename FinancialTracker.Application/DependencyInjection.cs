@@ -12,7 +12,6 @@ public static class DependencyInjection
         services.AddScoped<SignInWithGoogle>();
         services.AddScoped<GetUserSettings>();
         services.AddScoped<SetCurrency>();
-        services.AddScoped<RequireCurrency>();
 
         return services;
     }

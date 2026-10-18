@@ -7,6 +7,6 @@ namespace FinancialTracker.Infrastructure.Identity;
 /// </summary>
 public class User : IdentityUser<Guid>
 {
-    /// <summary>The ISO 4217 code of the User's Currency (ADR 0001). Null until the User chooses one.</summary>
+    /// <summary>The ISO 4217 code of the User's Currency, the default for new Accounts (ADR 0003). Null until the User chooses one.</summary>
     public string? CurrencyCode { get; set; }
 }
