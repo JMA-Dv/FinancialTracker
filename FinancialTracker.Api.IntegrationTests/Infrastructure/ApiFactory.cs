@@ -1,3 +1,4 @@
+using System.Net.Http.Json;
 using FinancialTracker.Infrastructure;
 using FinancialTracker.Infrastructure.Persistence;
 using Microsoft.AspNetCore.Hosting;
@@ -51,6 +52,20 @@ public sealed class ApiFactory : WebApplicationFactory<Program>, IAsyncLifetime
         }
 
         return new SignedInUser(client, google);
+    }
+
+    /// <summary>A brand-new signed-in User who has chosen their Currency, ready to record money.</summary>
+    public async Task<SignedInUser> CreateSignedInUserWithCurrencyAsync(string currency = "USD")
+    {
+        var user = await CreateSignedInUserAsync();
+
+        var set = await user.Client.PutAsJsonAsync("/api/user-settings/currency", new { currency });
+        if (!set.IsSuccessStatusCode)
+        {
+            throw new HttpRequestException($"Setting the Currency failed: {(int)set.StatusCode} {await set.Content.ReadAsStringAsync()}");
+        }
+
+        return user;
     }
 
     /// <summary>The ids of every User the Google account signs in as. One, once it has signed in.</summary>

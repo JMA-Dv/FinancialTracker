@@ -1,3 +1,4 @@
+using FinancialTracker.Application.UserSettings;
 using FinancialTracker.Application.Users;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -9,6 +10,8 @@ public static class DependencyInjection
     {
         // Use cases are scoped like the stores they depend on: one per request.
         services.AddScoped<SignInWithGoogle>();
+        services.AddScoped<GetUserSettings>();
+        services.AddScoped<SetCurrency>();
 
         return services;
     }

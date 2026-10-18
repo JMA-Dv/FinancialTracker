@@ -13,7 +13,7 @@ _Avoid_: Account, member, customer
 ### Money
 
 **Currency**:
-The single unit of money a User's finances are kept in, chosen at setup. Every amount a User records is in their Currency.
+The unit of money an Account's amounts are kept in, chosen when the Account is created. Every amount recorded on an Account is in that Account's Currency, and nothing is ever converted. A User's Currency is only the default offered for new Accounts.
 _Avoid_: Money type, denomination
 
 **Account**:
@@ -33,7 +33,7 @@ A statement that an Account's real balance was a given amount at the end of a gi
 _Avoid_: Correction, reconciliation, fix
 
 **Opening Balance**:
-The first Balance Adjustment on an Account, stating what it held when the User started tracking it.
+The earliest Balance Adjustment on an Account, stating what it held when the User started tracking it. It is optional: it can be given when the Account is created or added later. An Account with no Balance Adjustment starts at zero, and every Transaction and Transfer counts toward its balance, whatever its date.
 _Avoid_: Initial balance, starting amount
 
 **Transaction**:
