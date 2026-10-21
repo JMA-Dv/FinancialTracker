@@ -14,6 +14,9 @@ public sealed record Currency
         MinorUnits = minorUnits;
     }
 
+    /// <summary>The largest amount, positive or negative, that fits the database's numeric(19,4) column.</summary>
+    public const decimal MaxAmount = 999_999_999_999_999.9999m;
+
     /// <summary>The ISO 4217 alphabetic code, such as USD.</summary>
     public string Code { get; }
 
@@ -44,10 +47,16 @@ public sealed record Currency
     }
 
     /// <exception cref="DomainValidationException">
-    /// The amount has more decimal places than this Currency allows, such as 10.005 USD or 10.5 JPY.
+    /// The amount has more decimal places than this Currency allows, such as 10.005 USD or 10.5 JPY,
+    /// or is larger than <see cref="MaxAmount"/>.
     /// </exception>
     public void EnsureValidAmount(decimal amount)
     {
+        if (Math.Abs(amount) > MaxAmount)
+        {
+            throw new DomainValidationException("Amount too large", $"Amounts can't be larger than {MaxAmount:N0} in either direction.");
+        }
+
         // Trailing zeros don't count: 10.50 USD and 1050.00 JPY are fine.
         if (decimal.Round(amount, MinorUnits) != amount)
         {

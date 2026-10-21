@@ -48,6 +48,7 @@ public sealed class AccountTests(ApiFactory api)
         { "an Opening Balance dated in the future", new { name = "Checking", kind = "Checking", openingBalance = new { amount = 100m, date = Today.AddDays(1) } } },
         { "an Opening Balance with more decimal places than USD allows", new { name = "Checking", kind = "Checking", openingBalance = new { amount = 10.005m, date = Today } } },
         { "an Opening Balance with decimals in JPY", new { name = "Checking", kind = "Checking", currency = "JPY", openingBalance = new { amount = 10.5m, date = Today } } },
+        { "an Opening Balance too large for the database", new { name = "Checking", kind = "Checking", openingBalance = new { amount = 1e20m, date = Today } } },
         { "an unknown Currency", new { name = "Checking", kind = "Checking", currency = "ZZZ" } },
         { "a blank name", new { name = "  ", kind = "Checking" } },
         { "a name over 100 characters", new { name = new string('a', 101), kind = "Checking" } },

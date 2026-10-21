@@ -18,10 +18,11 @@ public sealed class OpenAccount(IAccountStore accounts, GetUserSettings getUserS
                     "Give the Account a Currency, or set your Currency in user settings to use it by default.")
             : Currency.FromCode(request.CurrencyCode);
 
-        var account = Account.Open(userId, request.Name, request.Kind, currency, request.OpeningBalance, clock.Today());
+        var today = clock.Today();
+        var account = Account.Open(userId, request.Name, request.Kind, currency, request.OpeningBalance, today);
         await accounts.AddAsync(account);
 
-        return AccountSummary.Of(account, clock.Today());
+        return AccountSummary.Of(account, today);
     }
 }
 
