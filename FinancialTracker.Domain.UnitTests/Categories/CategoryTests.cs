@@ -124,23 +124,16 @@ public sealed class CategoryTests
     }
 
     [Fact]
-    public void The_starter_set_has_Income_and_Expense_Categories_with_children_under_top_level_ones_only()
+    public void The_starter_set_is_the_default_top_level_Categories_with_only_Income_as_Income()
     {
         var starter = StarterCategories.CreateFor(UserId);
-        var byId = starter.ToDictionary(category => category.Id);
 
+        Assert.Equal(
+            ["Dining", "Groceries", "Shopping", "Entertainment", "Bills", "Gifts", "Work", "Income", "Health", "Investments", "Lend"],
+            starter.Select(category => category.Name));
         Assert.All(starter, category => Assert.Equal(UserId, category.UserId));
-        Assert.Contains(starter, category => category.Kind is CategoryKind.Income);
-        Assert.Contains(starter, category => category.Kind is CategoryKind.Expense);
-        Assert.Contains(starter, category => category is { Name: "Groceries", ParentId: not null });
-        Assert.All(
-            starter.Where(category => category.ParentId is not null),
-            child =>
-            {
-                var parent = byId[child.ParentId!.Value];
-                Assert.Null(parent.ParentId);
-                Assert.Equal(parent.Kind, child.Kind);
-            });
+        Assert.All(starter, category => Assert.Null(category.ParentId));
+        Assert.Equal(["Income"], starter.Where(category => category.Kind is CategoryKind.Income).Select(category => category.Name));
     }
 
     private static Category Food() => Category.Create(UserId, "Food", CategoryKind.Expense, parent: null);

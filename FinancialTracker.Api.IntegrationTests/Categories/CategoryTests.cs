@@ -10,17 +10,18 @@ public sealed class CategoryTests(ApiFactory api)
     private const string CategoriesEndpoint = "/api/categories";
 
     [Fact]
-    public async Task A_new_User_sees_the_starter_Categories_as_a_tree_of_Income_and_Expense()
+    public async Task A_new_User_sees_the_starter_Categories_each_marked_Income_or_Expense()
     {
         var user = await api.CreateSignedInUserAsync();
 
         var tree = await ListAsync(user);
 
-        var food = Assert.Single(tree, node => node.Name == "Food");
-        Assert.Equal("Expense", food.Kind);
-        Assert.Equal(["Groceries", "Restaurants"], food.Children.Select(child => child.Name));
-        Assert.All(food.Children, child => Assert.Equal("Expense", child.Kind));
-        Assert.Equal("Income", Assert.Single(tree, node => node.Name == "Salary").Kind);
+        Assert.Equal(
+            ["Bills", "Dining", "Entertainment", "Gifts", "Groceries", "Health", "Income", "Investments", "Lend", "Shopping", "Work"],
+            tree.Select(node => node.Name));
+        Assert.All(tree, node => Assert.Empty(node.Children));
+        Assert.Equal("Income", Assert.Single(tree, node => node.Kind == "Income").Name);
+        Assert.Equal(10, tree.Count(node => node.Kind == "Expense"));
     }
 
     [Fact]
@@ -28,11 +29,11 @@ public sealed class CategoryTests(ApiFactory api)
     {
         var first = await api.CreateSignedInUserAsync();
         var second = await api.CreateSignedInUserAsync();
-        var food = Assert.Single(await ListAsync(first), node => node.Name == "Food");
+        var dining = Assert.Single(await ListAsync(first), node => node.Name == "Dining");
 
-        await first.Client.PutAsJsonAsync($"{CategoriesEndpoint}/{food.Id}/name", new { name = "Eating" });
+        await first.Client.PutAsJsonAsync($"{CategoriesEndpoint}/{dining.Id}/name", new { name = "Eating out" });
 
-        Assert.Contains(await ListAsync(second), node => node.Name == "Food");
+        Assert.Contains(await ListAsync(second), node => node.Name == "Dining");
     }
 
     [Fact]
@@ -62,12 +63,11 @@ public sealed class CategoryTests(ApiFactory api)
     public async Task A_Category_that_breaks_a_rule_is_rejected_and_not_created(string rule, Func<Guid, object> category)
     {
         var user = await api.CreateSignedInUserAsync();
-        var food = Assert.Single(await ListAsync(user), node => node.Name == "Food");
-        var groceries = Assert.Single(food.Children, child => child.Name == "Groceries");
+        var (travel, flights) = await CreateTripAsync(user);
         var before = Count(await ListAsync(user));
 
         // The third-level case needs a child as the parent; the kind mismatch needs a top-level one.
-        var parent = rule.Contains("third") ? groceries.Id : food.Id;
+        var parent = rule.Contains("third") ? flights.Id : travel.Id;
         var created = await user.Client.PostAsJsonAsync(CategoriesEndpoint, category(parent));
 
         Assert.True(created.StatusCode is HttpStatusCode.BadRequest, $"{rule}: got {(int)created.StatusCode}");
@@ -78,14 +78,14 @@ public sealed class CategoryTests(ApiFactory api)
     public async Task Names_are_unique_per_parent_ignoring_case()
     {
         var user = await api.CreateSignedInUserAsync();
-        var food = Assert.Single(await ListAsync(user), node => node.Name == "Food");
-        var housing = Assert.Single(await ListAsync(user), node => node.Name == "Housing");
+        var (travel, _) = await CreateTripAsync(user);
+        var shopping = Assert.Single(await ListAsync(user), node => node.Name == "Shopping");
 
-        var topLevelDuplicate = await user.Client.PostAsJsonAsync(CategoriesEndpoint, new { name = "fOOD", kind = "Expense" });
-        var childDuplicate = await user.Client.PostAsJsonAsync(CategoriesEndpoint, new { name = " GROCERIES", parentId = food.Id });
-        var sameNameElsewhere = await user.Client.PostAsJsonAsync(CategoriesEndpoint, new { name = "Groceries", parentId = housing.Id });
-        var renameToDuplicate = await user.Client.PutAsJsonAsync($"{CategoriesEndpoint}/{housing.Id}/name", new { name = "food" });
-        var renameToItself = await user.Client.PutAsJsonAsync($"{CategoriesEndpoint}/{housing.Id}/name", new { name = "HOUSING" });
+        var topLevelDuplicate = await user.Client.PostAsJsonAsync(CategoriesEndpoint, new { name = "dINING", kind = "Expense" });
+        var childDuplicate = await user.Client.PostAsJsonAsync(CategoriesEndpoint, new { name = " FLIGHTS", parentId = travel.Id });
+        var sameNameElsewhere = await user.Client.PostAsJsonAsync(CategoriesEndpoint, new { name = "Flights", parentId = shopping.Id });
+        var renameToDuplicate = await user.Client.PutAsJsonAsync($"{CategoriesEndpoint}/{shopping.Id}/name", new { name = "dining" });
+        var renameToItself = await user.Client.PutAsJsonAsync($"{CategoriesEndpoint}/{shopping.Id}/name", new { name = "SHOPPING" });
 
         Assert.Equal(HttpStatusCode.Conflict, topLevelDuplicate.StatusCode);
         Assert.Equal(HttpStatusCode.Conflict, childDuplicate.StatusCode);
@@ -98,28 +98,26 @@ public sealed class CategoryTests(ApiFactory api)
     public async Task A_User_can_rename_a_Category_and_move_it_under_another_parent()
     {
         var user = await api.CreateSignedInUserAsync();
-        var tree = await ListAsync(user);
-        var housing = Assert.Single(tree, node => node.Name == "Housing");
-        var groceries = Assert.Single(Assert.Single(tree, node => node.Name == "Food").Children, child => child.Name == "Groceries");
+        var (_, flights) = await CreateTripAsync(user);
+        var dining = Assert.Single(await ListAsync(user), node => node.Name == "Dining");
 
-        var renamed = await user.Client.PutAsJsonAsync($"{CategoriesEndpoint}/{groceries.Id}/name", new { name = "Supermarket" });
-        var moved = await user.Client.PutAsJsonAsync($"{CategoriesEndpoint}/{groceries.Id}/parent", new { parentId = housing.Id });
+        var renamed = await user.Client.PutAsJsonAsync($"{CategoriesEndpoint}/{flights.Id}/name", new { name = "Airfare" });
+        var moved = await user.Client.PutAsJsonAsync($"{CategoriesEndpoint}/{flights.Id}/parent", new { parentId = dining.Id });
 
         Assert.Equal(HttpStatusCode.OK, renamed.StatusCode);
         Assert.Equal(HttpStatusCode.OK, moved.StatusCode);
-        var housingNow = Assert.Single(await ListAsync(user), node => node.Name == "Housing");
-        Assert.Contains(housingNow.Children, child => child.Name == "Supermarket");
+        var diningNow = Assert.Single(await ListAsync(user), node => node.Name == "Dining");
+        Assert.Contains(diningNow.Children, child => child.Name == "Airfare");
     }
 
     [Fact]
     public async Task A_Category_with_children_cant_move_under_another_and_a_child_can_move_to_the_top_level()
     {
         var user = await api.CreateSignedInUserAsync();
+        var (food, groceries) = await CreateTripAsync(user);
         var tree = await ListAsync(user);
-        var food = Assert.Single(tree, node => node.Name == "Food");
-        var housing = Assert.Single(tree, node => node.Name == "Housing");
-        var groceries = Assert.Single(food.Children, child => child.Name == "Groceries");
-        var salary = Assert.Single(tree, node => node.Name == "Salary");
+        var housing = Assert.Single(tree, node => node.Name == "Dining");
+        var salary = Assert.Single(tree, node => node.Name == "Income");
 
         var withChildren = await user.Client.PutAsJsonAsync($"{CategoriesEndpoint}/{food.Id}/parent", new { parentId = housing.Id });
         var underChild = await user.Client.PutAsJsonAsync($"{CategoriesEndpoint}/{housing.Id}/parent", new { parentId = groceries.Id });
@@ -130,26 +128,25 @@ public sealed class CategoryTests(ApiFactory api)
         Assert.Equal(HttpStatusCode.BadRequest, underChild.StatusCode);
         Assert.Equal(HttpStatusCode.BadRequest, otherKind.StatusCode);
         Assert.Equal(HttpStatusCode.OK, toTop.StatusCode);
-        Assert.Contains(await ListAsync(user), node => node.Name == "Groceries");
+        Assert.Contains(await ListAsync(user), node => node.Name == "Flights");
     }
 
     [Fact]
     public async Task The_tree_hides_Archived_Categories_unless_asked_to_include_them()
     {
         var user = await api.CreateSignedInUserAsync();
-        var food = Assert.Single(await ListAsync(user), node => node.Name == "Food");
-        var groceries = Assert.Single(food.Children, child => child.Name == "Groceries");
+        var (food, groceries) = await CreateTripAsync(user);
 
         var archived = await user.Client.PostAsync($"{CategoriesEndpoint}/{groceries.Id}/archive", null);
 
         Assert.Equal(HttpStatusCode.OK, archived.StatusCode);
-        Assert.DoesNotContain(Assert.Single(await ListAsync(user), node => node.Name == "Food").Children, child => child.Id == groceries.Id);
-        var all = Assert.Single(await ListAsync(user, includeArchived: true), node => node.Name == "Food");
+        Assert.DoesNotContain(Assert.Single(await ListAsync(user), node => node.Id == food.Id).Children, child => child.Id == groceries.Id);
+        var all = Assert.Single(await ListAsync(user, includeArchived: true), node => node.Id == food.Id);
         Assert.True(Assert.Single(all.Children, child => child.Id == groceries.Id).IsArchived);
 
         await user.Client.PostAsync($"{CategoriesEndpoint}/{groceries.Id}/unarchive", null);
 
-        Assert.Contains(Assert.Single(await ListAsync(user), node => node.Name == "Food").Children, child => child.Id == groceries.Id);
+        Assert.Contains(Assert.Single(await ListAsync(user), node => node.Id == food.Id).Children, child => child.Id == groceries.Id);
     }
 
     [Fact]
@@ -157,10 +154,9 @@ public sealed class CategoryTests(ApiFactory api)
     {
         var owner = await api.CreateSignedInUserAsync();
         var stranger = await api.CreateSignedInUserAsync();
-        var food = Assert.Single(await ListAsync(owner), node => node.Name == "Food");
-        var ownersHousing = Assert.Single(await ListAsync(owner), node => node.Name == "Housing");
-        var strangersHousing = Assert.Single(await ListAsync(stranger), node => node.Name == "Housing");
-        var groceries = Assert.Single(food.Children, child => child.Name == "Groceries");
+        var (food, groceries) = await CreateTripAsync(owner);
+        var ownersHousing = Assert.Single(await ListAsync(owner), node => node.Name == "Dining");
+        var strangersHousing = Assert.Single(await ListAsync(stranger), node => node.Name == "Dining");
         var url = $"{CategoriesEndpoint}/{groceries.Id}";
 
         HttpRequestMessage[] Operations(Guid parent) =>
@@ -192,6 +188,12 @@ public sealed class CategoryTests(ApiFactory api)
         (await user.Client.GetFromJsonAsync<List<TreeNode>>($"{CategoriesEndpoint}?includeArchived={includeArchived}"))!;
 
     private static int Count(List<TreeNode> tree) => tree.Sum(node => 1 + node.Children.Count);
+
+    private static async Task<(CategoryView Travel, CategoryView Flights)> CreateTripAsync(SignedInUser user)
+    {
+        var travel = await CreateAsync(user, new { name = "Travel", kind = "Expense" });
+        return (travel, await CreateAsync(user, new { name = "Flights", parentId = travel.Id }));
+    }
 
     private static async Task<CategoryView> CreateAsync(SignedInUser user, object category)
     {
