@@ -1,6 +1,7 @@
 using FinancialTracker.Domain.Accounts;
 using FinancialTracker.Domain.Categories;
 using FinancialTracker.Domain.Money;
+using FinancialTracker.Domain.Transactions;
 using FinancialTracker.Infrastructure.Identity;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
@@ -13,6 +14,8 @@ public class FinanceDbContext(DbContextOptions<FinanceDbContext> options)
     public DbSet<Account> Accounts => Set<Account>();
 
     public DbSet<Category> Categories => Set<Category>();
+
+    public DbSet<Transaction> Transactions => Set<Transaction>();
 
     protected override void OnModelCreating(ModelBuilder builder)
     {
@@ -50,6 +53,23 @@ public class FinanceDbContext(DbContextOptions<FinanceDbContext> options)
 
             // Restrict: a parent is moved or archived, never deleted out from under its children.
             category.HasOne<Category>().WithMany().HasForeignKey(c => c.ParentId).OnDelete(DeleteBehavior.Restrict);
+        });
+
+        builder.Entity<Transaction>(transaction =>
+        {
+            transaction.ToTable("Transactions");
+            transaction.HasKey(t => t.Id);
+            transaction.Property(t => t.Id).ValueGeneratedNever();
+            transaction.HasOne<User>().WithMany().HasForeignKey(t => t.UserId).OnDelete(DeleteBehavior.Cascade);
+            // Restrict: money that moved through an Account or Category is never deleted along with it.
+            transaction.HasOne<Account>().WithMany().HasForeignKey(t => t.AccountId).OnDelete(DeleteBehavior.Restrict);
+            transaction.HasOne<Category>().WithMany().HasForeignKey(t => t.CategoryId).OnDelete(DeleteBehavior.Restrict);
+            transaction.HasIndex(t => t.UserId);
+            transaction.HasIndex(t => t.AccountId);
+            transaction.Property(t => t.Direction).HasConversion<string>().HasMaxLength(3);
+            transaction.Property(t => t.Amount).HasPrecision(19, 4);
+            transaction.Property(t => t.Note).HasMaxLength(Transaction.MaxNoteLength);
+            transaction.Ignore(t => t.SignedAmount);
         });
 
         builder.Entity<BalanceAdjustment>(adjustment =>

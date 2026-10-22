@@ -1,9 +1,10 @@
+using FinancialTracker.Application.Transactions;
 using FinancialTracker.Domain.Money;
 
 namespace FinancialTracker.Application.Accounts;
 
 /// <summary>Changes an Account's Currency, which is only allowed before money moves through it (ADR 0003).</summary>
-public sealed class ChangeAccountCurrency(IAccountStore accounts, TimeProvider clock)
+public sealed class ChangeAccountCurrency(IAccountStore accounts, ITransactionStore transactions, TimeProvider clock)
 {
     public async Task<AccountSummary> ExecuteAsync(Guid userId, Guid accountId, string currencyCode)
     {
@@ -13,6 +14,6 @@ public sealed class ChangeAccountCurrency(IAccountStore accounts, TimeProvider c
 
         account.ChangeCurrency(currency, await accounts.HasTransactionsOrTransfersAsync(account.Id));
         await accounts.SaveChangesAsync();
-        return AccountSummary.Of(account, clock.Today());
+        return AccountSummary.Of(account, await transactions.SearchAsync(userId, TransactionFilter.ForAccount(account.Id)), clock.Today());
     }
 }

@@ -22,8 +22,9 @@ public sealed class AccountStore(FinanceDbContext dbContext) : IAccountStore
             .OrderBy(account => account.Id)
             .ToListAsync();
 
-    // There are no Transactions (#7) or Transfers (#8) yet. Query them here once they exist.
-    public Task<bool> HasTransactionsOrTransfersAsync(Guid accountId) => Task.FromResult(false);
+    // Transfers (#8) don't exist yet. Query them here once they do.
+    public Task<bool> HasTransactionsOrTransfersAsync(Guid accountId) =>
+        dbContext.Transactions.AnyAsync(transaction => transaction.AccountId == accountId);
 
     public Task SaveChangesAsync() => dbContext.SaveChangesAsync();
 }
