@@ -21,7 +21,7 @@ public sealed class TransactionBalanceTests
             Record(account, new DateOnly(2026, 9, 2), TransactionDirection.In, 5m),
         };
 
-        Assert.Equal(105m, account.BalanceOn(Today, transactions));
+        Assert.Equal(105m, account.BalanceOn(Today, transactions, []));
     }
 
     [Fact]
@@ -34,7 +34,7 @@ public sealed class TransactionBalanceTests
             Record(account, new DateOnly(2026, 10, 1), TransactionDirection.Out, 20m),
         };
 
-        Assert.Equal(30m, account.BalanceOn(Today, transactions));
+        Assert.Equal(30m, account.BalanceOn(Today, transactions, []));
     }
 
     [Fact]
@@ -47,7 +47,7 @@ public sealed class TransactionBalanceTests
             Record(account, new DateOnly(2026, 10, 10), TransactionDirection.Out, 20m),
         };
 
-        Assert.Equal(50m, account.BalanceOn(new DateOnly(2026, 10, 9), transactions));
+        Assert.Equal(50m, account.BalanceOn(new DateOnly(2026, 10, 9), transactions, []));
     }
 
     [Fact]
@@ -56,7 +56,7 @@ public sealed class TransactionBalanceTests
         var card = Open(AccountKind.CreditCard, new OpeningBalance(-500m, new DateOnly(2026, 9, 1)));
         var purchase = Record(card, new DateOnly(2026, 10, 1), TransactionDirection.Out, 120m);
 
-        Assert.Equal(-620m, card.BalanceOn(Today, [purchase]));
+        Assert.Equal(-620m, card.BalanceOn(Today, [purchase], []));
     }
 
     private static Account Open(AccountKind kind, OpeningBalance? openingBalance) =>

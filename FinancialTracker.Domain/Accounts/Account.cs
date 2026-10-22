@@ -1,6 +1,7 @@
 using FinancialTracker.Domain.Common;
 using FinancialTracker.Domain.Money;
 using FinancialTracker.Domain.Transactions;
+using FinancialTracker.Domain.Transfers;
 
 namespace FinancialTracker.Domain.Accounts;
 
@@ -95,20 +96,22 @@ public sealed class Account
 
     /// <summary>
     /// The Account's balance at the end of the date: the latest Balance Adjustment on or before it, or zero
-    /// without one, plus the Transactions dated after that Adjustment up to the date. A Transaction on or before
-    /// the Adjustment is already inside the balance it states. Balances are always derived, never stored.
-    /// Transfers (#8) dated the same way will add to it once they exist.
+    /// without one, plus the Transactions and Transfers dated after that Adjustment up to the date. Anything dated
+    /// on or before the Adjustment is already inside the balance it states. Balances are always derived, never stored.
     /// </summary>
-    /// <param name="transactions">The Account's Transactions.</param>
-    public decimal BalanceOn(DateOnly date, IEnumerable<Transaction> transactions)
+    /// <param name="transactions">Transactions to count. Those on other Accounts are ignored.</param>
+    /// <param name="transfers">Transfers to count. Those that don't touch this Account are ignored.</param>
+    public decimal BalanceOn(DateOnly date, IEnumerable<Transaction> transactions, IEnumerable<Transfer> transfers)
     {
         var adjustment = balanceAdjustments
             .Where(a => a.Date <= date)
             .MaxBy(a => a.Date);
 
-        var movedSince = transactions
-            .Where(t => t.Date <= date && (adjustment is null || t.Date > adjustment.Date))
-            .Sum(t => t.SignedAmount);
+        bool Counts(DateOnly movedOn) => movedOn <= date && (adjustment is null || movedOn > adjustment.Date);
+
+        var movedSince =
+            transactions.Where(t => t.AccountId == Id && Counts(t.Date)).Sum(t => t.SignedAmount)
+            + transfers.Where(t => Counts(t.Date)).Sum(t => t.EffectOn(Id));
 
         return (adjustment?.Balance ?? 0m) + movedSince;
     }
