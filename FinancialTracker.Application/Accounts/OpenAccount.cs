@@ -22,7 +22,7 @@ public sealed class OpenAccount(IAccountStore accounts, GetUserSettings getUserS
         var account = Account.Open(userId, request.Name, request.Kind, currency, request.OpeningBalance, today);
         await accounts.AddAsync(account);
 
-        return AccountSummary.Of(account, transactions: [], today);
+        return AccountSummary.Of(account, transactions: [], transfers: [], today);
     }
 }
 

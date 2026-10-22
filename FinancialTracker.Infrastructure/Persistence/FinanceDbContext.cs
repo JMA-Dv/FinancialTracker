@@ -2,6 +2,7 @@ using FinancialTracker.Domain.Accounts;
 using FinancialTracker.Domain.Categories;
 using FinancialTracker.Domain.Money;
 using FinancialTracker.Domain.Transactions;
+using FinancialTracker.Domain.Transfers;
 using FinancialTracker.Infrastructure.Identity;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
@@ -16,6 +17,8 @@ public class FinanceDbContext(DbContextOptions<FinanceDbContext> options)
     public DbSet<Category> Categories => Set<Category>();
 
     public DbSet<Transaction> Transactions => Set<Transaction>();
+
+    public DbSet<Transfer> Transfers => Set<Transfer>();
 
     protected override void OnModelCreating(ModelBuilder builder)
     {
@@ -70,6 +73,23 @@ public class FinanceDbContext(DbContextOptions<FinanceDbContext> options)
             transaction.Property(t => t.Amount).HasPrecision(19, 4);
             transaction.Property(t => t.Note).HasMaxLength(Transaction.MaxNoteLength);
             transaction.Ignore(t => t.SignedAmount);
+        });
+
+        builder.Entity<Transfer>(transfer =>
+        {
+            transfer.ToTable("Transfers");
+            transfer.HasKey(t => t.Id);
+            transfer.Property(t => t.Id).ValueGeneratedNever();
+            transfer.HasOne<User>().WithMany().HasForeignKey(t => t.UserId).OnDelete(DeleteBehavior.Cascade);
+            // Restrict: money that moved through an Account is never deleted along with it.
+            transfer.HasOne<Account>().WithMany().HasForeignKey(t => t.FromAccountId).OnDelete(DeleteBehavior.Restrict);
+            transfer.HasOne<Account>().WithMany().HasForeignKey(t => t.ToAccountId).OnDelete(DeleteBehavior.Restrict);
+            transfer.HasIndex(t => t.UserId);
+            transfer.HasIndex(t => t.FromAccountId);
+            transfer.HasIndex(t => t.ToAccountId);
+            transfer.Property(t => t.AmountSent).HasPrecision(19, 4);
+            transfer.Property(t => t.AmountReceived).HasPrecision(19, 4);
+            transfer.Property(t => t.Note).HasMaxLength(Transfer.MaxNoteLength);
         });
 
         builder.Entity<BalanceAdjustment>(adjustment =>

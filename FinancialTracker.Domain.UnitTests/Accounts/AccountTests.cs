@@ -15,8 +15,8 @@ public sealed class AccountTests
     {
         var account = Open(openingBalance: null);
 
-        Assert.Equal(0m, account.BalanceOn(new DateOnly(1990, 1, 1), []));
-        Assert.Equal(0m, account.BalanceOn(Today, []));
+        Assert.Equal(0m, account.BalanceOn(new DateOnly(1990, 1, 1), [], []));
+        Assert.Equal(0m, account.BalanceOn(Today, [], []));
     }
 
     [Fact]
@@ -24,9 +24,9 @@ public sealed class AccountTests
     {
         var account = Open(new OpeningBalance(250.75m, new DateOnly(2026, 9, 1)));
 
-        Assert.Equal(0m, account.BalanceOn(new DateOnly(2026, 8, 31), []));
-        Assert.Equal(250.75m, account.BalanceOn(new DateOnly(2026, 9, 1), []));
-        Assert.Equal(250.75m, account.BalanceOn(Today, []));
+        Assert.Equal(0m, account.BalanceOn(new DateOnly(2026, 8, 31), [], []));
+        Assert.Equal(250.75m, account.BalanceOn(new DateOnly(2026, 9, 1), [], []));
+        Assert.Equal(250.75m, account.BalanceOn(Today, [], []));
     }
 
     [Fact]
@@ -56,7 +56,7 @@ public sealed class AccountTests
         account.ChangeCurrency(Jpy, hasTransactionsOrTransfers: false);
 
         Assert.Equal(Jpy, account.Currency);
-        Assert.Equal(1200m, account.BalanceOn(Today, []));
+        Assert.Equal(1200m, account.BalanceOn(Today, [], []));
     }
 
     [Fact]
