@@ -1,4 +1,5 @@
 using FinancialTracker.Domain.Accounts;
+using FinancialTracker.Domain.Categories;
 using FinancialTracker.Domain.Money;
 using FinancialTracker.Infrastructure.Identity;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
@@ -10,6 +11,8 @@ public class FinanceDbContext(DbContextOptions<FinanceDbContext> options)
     : IdentityUserContext<User, Guid>(options)
 {
     public DbSet<Account> Accounts => Set<Account>();
+
+    public DbSet<Category> Categories => Set<Category>();
 
     protected override void OnModelCreating(ModelBuilder builder)
     {
@@ -33,6 +36,20 @@ public class FinanceDbContext(DbContextOptions<FinanceDbContext> options)
             account.HasMany(a => a.BalanceAdjustments).WithOne().HasForeignKey("AccountId").IsRequired().OnDelete(DeleteBehavior.Cascade);
             account.Navigation(a => a.BalanceAdjustments).UsePropertyAccessMode(PropertyAccessMode.Field).AutoInclude();
             account.Ignore(a => a.OpeningBalance);
+        });
+
+        builder.Entity<Category>(category =>
+        {
+            category.ToTable("Categories");
+            category.HasKey(c => c.Id);
+            category.Property(c => c.Id).ValueGeneratedNever();
+            category.HasOne<User>().WithMany().HasForeignKey(c => c.UserId).OnDelete(DeleteBehavior.Cascade);
+            category.HasIndex(c => c.UserId);
+            category.Property(c => c.Name).HasMaxLength(Category.MaxNameLength);
+            category.Property(c => c.Kind).HasConversion<string>().HasMaxLength(20);
+
+            // Restrict: a parent is moved or archived, never deleted out from under its children.
+            category.HasOne<Category>().WithMany().HasForeignKey(c => c.ParentId).OnDelete(DeleteBehavior.Restrict);
         });
 
         builder.Entity<BalanceAdjustment>(adjustment =>
