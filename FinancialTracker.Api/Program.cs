@@ -12,7 +12,7 @@ builder.Services.AddInfrastructure();
 builder.Services.AddCookieAuthentication();
 builder.Services.AddControllers()
     .AddJsonOptions(options => options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter(allowIntegerValues: false)));
-builder.Services.AddValidatorsFromAssemblyContaining<Program>();
+builder.Services.AddValidatorsFromAssemblyContaining<Program>(includeInternalTypes: true);
 builder.Services.AddProblemDetails();
 builder.Services.AddExceptionHandler<DomainExceptionHandler>();
 // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
