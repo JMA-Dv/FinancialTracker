@@ -11,7 +11,7 @@ public sealed class ListCategories(ICategoryStore categories)
     public async Task<IReadOnlyList<CategoryNode>> ExecuteAsync(Guid userId, bool includeArchived)
     {
         var visible = (await categories.ListAsync(userId)).Where(category => includeArchived || !category.IsArchived).ToList();
-        var childrenByParent = visible.Where(category => category.ParentId is not null).ToLookup(category => category.ParentId!.Value);
+        var childrenByParent = visible.Where(category => category.ParentId is not null).ToLookup(category => category.ParentId);
 
         return visible
             .Where(category => category.ParentId is null)

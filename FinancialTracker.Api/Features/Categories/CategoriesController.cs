@@ -32,7 +32,7 @@ public class CategoriesController(
         }
 
         var category = await createCategory.ExecuteAsync(User.Id(), request.Name, request.Kind, request.ParentId);
-        return Created($"api/categories/{category.Id}", CategoryResponse.Of(category));
+        return StatusCode(StatusCodes.Status201Created, CategoryResponse.Of(category));
     }
 
     [HttpPut("{id:guid}/name")]

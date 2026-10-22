@@ -35,11 +35,10 @@ public sealed class CategoryTests
         Assert.Throws<DomainValidationException>(() => Category.Create(UserId, "Organic", null, groceries));
     }
 
-    [Theory]
-    [InlineData("  ")]
-    public void A_blank_name_is_rejected(string name)
+    [Fact]
+    public void A_blank_name_is_rejected()
     {
-        Assert.Throws<DomainValidationException>(() => Category.Create(UserId, name, CategoryKind.Expense, parent: null));
+        Assert.Throws<DomainValidationException>(() => Category.Create(UserId, "  ", CategoryKind.Expense, parent: null));
     }
 
     [Fact]
@@ -99,6 +98,17 @@ public sealed class CategoryTests
         Assert.Throws<DomainValidationException>(() => rent.MoveUnder(rent, hasChildren: false));
         Assert.Throws<DomainValidationException>(() => rent.MoveUnder(salary, hasChildren: false));
         Assert.Null(rent.ParentId);
+    }
+
+    [Fact]
+    public void Nothing_can_be_created_or_moved_under_an_archived_Category()
+    {
+        var food = Food();
+        var rent = Category.Create(UserId, "Rent", CategoryKind.Expense, parent: null);
+        food.Archive();
+
+        Assert.Throws<DomainConflictException>(() => Category.Create(UserId, "Snacks", kind: null, food));
+        Assert.Throws<DomainConflictException>(() => rent.MoveUnder(food, hasChildren: false));
     }
 
     [Fact]

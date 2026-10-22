@@ -36,9 +36,9 @@ public sealed class Category
     /// <param name="kind">Income or Expense. Leave it out for a child, which takes its parent's kind.</param>
     /// <param name="parent">The Category to sit under, or null for a top-level Category.</param>
     /// <exception cref="DomainValidationException">The name, the kind or the parent breaks a rule.</exception>
+    /// <exception cref="DomainConflictException">The parent is archived.</exception>
     public static Category Create(Guid userId, string name, CategoryKind? kind, Category? parent)
     {
-        ValidName(name);
         if (parent is null)
         {
             if (kind is not { } topLevelKind || !Enum.IsDefined(topLevelKind))
@@ -95,6 +95,12 @@ public sealed class Category
 
     private static void EnsureCanHaveChildren(Category parent)
     {
+        // The tree hides what is under an Archived Category, so a new child there would vanish from view.
+        if (parent.IsArchived)
+        {
+            throw new DomainConflictException("Category archived", $"{parent.Name} is archived. Unarchive it before putting Categories under it.");
+        }
+
         if (parent.ParentId is not null)
         {
             throw new DomainValidationException(
