@@ -35,9 +35,13 @@ public class AccountsController(
         var account = await openAccount.ExecuteAsync(
             User.Id(), new OpenAccountRequest(
                 request.Name,
-                request.Kind!.Value,
+                request.Kind ?? throw new InvalidOperationException("Kind is checked by the validator."),
                 request.Currency,
-                request.OpeningBalance is { } opening ? new OpeningBalance(opening.Amount!.Value, opening.Date!.Value) : null));
+                request.OpeningBalance is { } opening
+                    ? new OpeningBalance(
+                        opening.Amount ?? throw new InvalidOperationException("Amount is checked by the validator."),
+                        opening.Date ?? throw new InvalidOperationException("Date is checked by the validator."))
+                    : null));
         return CreatedAtAction(nameof(Get), new { id = account.Id }, AccountResponse.Of(account));
     }
 
@@ -86,33 +90,34 @@ public class AccountsController(
     }
 }
 
-public sealed class RenameAccountRequestValidator : AbstractValidator<RenameAccountRequest>
+internal sealed class RenameAccountRequestValidator : AbstractValidator<RenameAccountRequest>
 {
     public RenameAccountRequestValidator() => RuleFor(r => r.Name).NotNull().MaximumLength(Account.MaxNameLength);
 }
 
-public sealed class ChangeAccountCurrencyRequestValidator : AbstractValidator<ChangeAccountCurrencyRequest>
+internal sealed class ChangeAccountCurrencyRequestValidator : AbstractValidator<ChangeAccountCurrencyRequest>
 {
     public ChangeAccountCurrencyRequestValidator() => RuleFor(r => r.Currency).NotEmpty();
 }
 
-public sealed class CreateAccountRequestValidator : AbstractValidator<CreateAccountRequest>
+internal sealed class CreateAccountRequestValidator : AbstractValidator<CreateAccountRequest>
 {
     public CreateAccountRequestValidator()
     {
         RuleFor(r => r.Name).NotNull().MaximumLength(Account.MaxNameLength);
         RuleFor(r => r.Kind).NotNull().IsInEnum();
         RuleFor(r => r.Currency).NotEmpty().When(r => r.Currency is not null);
+        // The `!` only silences FluentValidation's nullable annotations: the rule is skipped when there's no Opening Balance.
         RuleFor(r => r.OpeningBalance).SetValidator(new OpeningBalanceRequestValidator()!).When(r => r.OpeningBalance is not null);
     }
 }
 
-public sealed class OpeningBalanceRequestValidator : AbstractValidator<OpeningBalanceRequest>
+internal sealed class OpeningBalanceRequestValidator : AbstractValidator<OpeningBalanceRequest>
 {
     public OpeningBalanceRequestValidator()
     {
-        RuleFor(r => r.Amount).NotNull().InclusiveBetween(-Currency.MaxAmount, Currency.MaxAmount);
-        RuleFor(r => r.Date).NotNull();
+        RuleFor(o => o.Amount).NotNull().InclusiveBetween(-Currency.MaxAmount, Currency.MaxAmount);
+        RuleFor(o => o.Date).NotNull();
     }
 }
 
