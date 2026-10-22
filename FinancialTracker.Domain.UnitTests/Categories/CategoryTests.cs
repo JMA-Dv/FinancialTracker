@@ -1,0 +1,137 @@
+using FinancialTracker.Domain.Categories;
+using FinancialTracker.Domain.Common;
+
+namespace FinancialTracker.Domain.UnitTests.Categories;
+
+public sealed class CategoryTests
+{
+    private static readonly Guid UserId = Guid.NewGuid();
+
+    [Fact]
+    public void A_top_level_Category_needs_a_kind()
+    {
+        Assert.Throws<DomainValidationException>(() => Category.Create(UserId, "Food", kind: null, parent: null));
+    }
+
+    [Fact]
+    public void A_child_takes_its_parents_kind_when_none_is_given()
+    {
+        var child = Category.Create(UserId, "Groceries", kind: null, Food());
+
+        Assert.Equal(CategoryKind.Expense, child.Kind);
+    }
+
+    [Fact]
+    public void A_child_with_a_different_kind_from_its_parent_is_rejected()
+    {
+        Assert.Throws<DomainValidationException>(() => Category.Create(UserId, "Bonus", CategoryKind.Income, Food()));
+    }
+
+    [Fact]
+    public void A_third_level_is_rejected()
+    {
+        var groceries = Category.Create(UserId, "Groceries", null, Food());
+
+        Assert.Throws<DomainValidationException>(() => Category.Create(UserId, "Organic", null, groceries));
+    }
+
+    [Theory]
+    [InlineData("  ")]
+    public void A_blank_name_is_rejected(string name)
+    {
+        Assert.Throws<DomainValidationException>(() => Category.Create(UserId, name, CategoryKind.Expense, parent: null));
+    }
+
+    [Fact]
+    public void A_name_over_the_limit_is_rejected()
+    {
+        var name = new string('a', Category.MaxNameLength + 1);
+
+        Assert.Throws<DomainValidationException>(() => Category.Create(UserId, name, CategoryKind.Expense, parent: null));
+    }
+
+    [Fact]
+    public void A_name_is_trimmed()
+    {
+        Assert.Equal("Food", Category.Create(UserId, " Food ", CategoryKind.Expense, parent: null).Name);
+    }
+
+    [Fact]
+    public void A_Category_without_children_can_move_under_a_top_level_Category_of_its_kind()
+    {
+        var rent = Category.Create(UserId, "Rent", CategoryKind.Expense, parent: null);
+        var housing = Category.Create(UserId, "Housing", CategoryKind.Expense, parent: null);
+
+        rent.MoveUnder(housing, hasChildren: false);
+
+        Assert.Equal(housing.Id, rent.ParentId);
+    }
+
+    [Fact]
+    public void A_child_can_move_to_the_top_level()
+    {
+        var groceries = Category.Create(UserId, "Groceries", null, Food());
+
+        groceries.MoveUnder(parent: null, hasChildren: false);
+
+        Assert.Null(groceries.ParentId);
+    }
+
+    [Fact]
+    public void A_Category_with_children_cant_move_under_another_Category()
+    {
+        var food = Food();
+        var housing = Category.Create(UserId, "Housing", CategoryKind.Expense, parent: null);
+
+        Assert.Throws<DomainValidationException>(() => food.MoveUnder(housing, hasChildren: true));
+        Assert.Null(food.ParentId);
+    }
+
+    [Fact]
+    public void A_Category_cant_move_under_a_child_under_itself_or_under_another_kind()
+    {
+        var food = Food();
+        var groceries = Category.Create(UserId, "Groceries", null, food);
+        var rent = Category.Create(UserId, "Rent", CategoryKind.Expense, parent: null);
+        var salary = Category.Create(UserId, "Salary", CategoryKind.Income, parent: null);
+
+        Assert.Throws<DomainValidationException>(() => rent.MoveUnder(groceries, hasChildren: false));
+        Assert.Throws<DomainValidationException>(() => rent.MoveUnder(rent, hasChildren: false));
+        Assert.Throws<DomainValidationException>(() => rent.MoveUnder(salary, hasChildren: false));
+        Assert.Null(rent.ParentId);
+    }
+
+    [Fact]
+    public void A_Category_can_be_archived_and_unarchived()
+    {
+        var food = Food();
+
+        food.Archive();
+        Assert.True(food.IsArchived);
+
+        food.Unarchive();
+        Assert.False(food.IsArchived);
+    }
+
+    [Fact]
+    public void The_starter_set_has_Income_and_Expense_Categories_with_children_under_top_level_ones_only()
+    {
+        var starter = StarterCategories.CreateFor(UserId);
+        var byId = starter.ToDictionary(category => category.Id);
+
+        Assert.All(starter, category => Assert.Equal(UserId, category.UserId));
+        Assert.Contains(starter, category => category.Kind is CategoryKind.Income);
+        Assert.Contains(starter, category => category.Kind is CategoryKind.Expense);
+        Assert.Contains(starter, category => category is { Name: "Groceries", ParentId: not null });
+        Assert.All(
+            starter.Where(category => category.ParentId is not null),
+            child =>
+            {
+                var parent = byId[child.ParentId!.Value];
+                Assert.Null(parent.ParentId);
+                Assert.Equal(parent.Kind, child.Kind);
+            });
+    }
+
+    private static Category Food() => Category.Create(UserId, "Food", CategoryKind.Expense, parent: null);
+}

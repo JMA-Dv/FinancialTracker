@@ -75,6 +75,39 @@ namespace FinancialTracker.Infrastructure.Persistence.Migrations
                     b.ToTable("BalanceAdjustments", (string)null);
                 });
 
+            modelBuilder.Entity("FinancialTracker.Domain.Categories.Category", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid");
+
+                    b.Property<bool>("IsArchived")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("Kind")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<Guid?>("ParentId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ParentId");
+
+                    b.HasIndex("UserId");
+
+                    b.ToTable("Categories", (string)null);
+                });
+
             modelBuilder.Entity("FinancialTracker.Infrastructure.Identity.User", b =>
                 {
                     b.Property<Guid>("Id")
@@ -223,6 +256,20 @@ namespace FinancialTracker.Infrastructure.Persistence.Migrations
                     b.HasOne("FinancialTracker.Domain.Accounts.Account", null)
                         .WithMany("BalanceAdjustments")
                         .HasForeignKey("AccountId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("FinancialTracker.Domain.Categories.Category", b =>
+                {
+                    b.HasOne("FinancialTracker.Domain.Categories.Category", null)
+                        .WithMany()
+                        .HasForeignKey("ParentId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("FinancialTracker.Infrastructure.Identity.User", null)
+                        .WithMany()
+                        .HasForeignKey("UserId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
                 });

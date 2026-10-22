@@ -1,4 +1,5 @@
 using FinancialTracker.Application.Accounts;
+using FinancialTracker.Application.Categories;
 using FinancialTracker.Application.UserSettings;
 using FinancialTracker.Application.Users;
 using Microsoft.Extensions.DependencyInjection;
@@ -19,6 +20,11 @@ public static class DependencyInjection
         services.AddScoped<GetAccount>();
         services.AddScoped<RenameAccount>();
         services.AddScoped<ChangeAccountCurrency>();
+        services.AddScoped<CreateCategory>();
+        services.AddScoped<ListCategories>();
+        services.AddScoped<RenameCategory>();
+        services.AddScoped<MoveCategory>();
+        services.AddScoped<ArchiveCategory>();
 
         // "Today" comes from one clock, so tests can move it.
         services.TryAddSingleton(TimeProvider.System);

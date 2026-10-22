@@ -1,4 +1,5 @@
 using FinancialTracker.Application.Users;
+using FinancialTracker.Domain.Categories;
 using FinancialTracker.Infrastructure.Persistence;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
@@ -38,6 +39,10 @@ public sealed class IdentityGoogleUserStore(UserManager<User> userManager, Finan
             }
 
             EnsureSucceeded(linked);
+
+            // Every User starts with the same editable Categories, created together with the User.
+            dbContext.Categories.AddRange(StarterCategories.CreateFor(id));
+            await dbContext.SaveChangesAsync();
             await transaction.CommitAsync();
             return id;
         }
