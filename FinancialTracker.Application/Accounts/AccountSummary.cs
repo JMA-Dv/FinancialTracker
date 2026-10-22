@@ -1,5 +1,6 @@
 using FinancialTracker.Domain.Accounts;
 using FinancialTracker.Domain.Money;
+using FinancialTracker.Domain.Transactions;
 
 namespace FinancialTracker.Application.Accounts;
 
@@ -13,13 +14,13 @@ public sealed record AccountSummary(
     bool IsLiability,
     OpeningBalance? OpeningBalance)
 {
-    public static AccountSummary Of(Account account, DateOnly today) =>
+    public static AccountSummary Of(Account account, IEnumerable<Transaction> transactions, DateOnly today) =>
         new(
             account.Id,
             account.Name,
             account.Kind,
             account.Currency,
-            account.BalanceOn(today),
+            account.BalanceOn(today, transactions),
             account.IsLiability,
             account.OpeningBalance is { } opening ? new OpeningBalance(opening.Balance, opening.Date) : null);
 }

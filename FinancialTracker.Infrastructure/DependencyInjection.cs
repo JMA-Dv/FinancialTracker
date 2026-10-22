@@ -1,5 +1,6 @@
 using FinancialTracker.Application.Accounts;
 using FinancialTracker.Application.Categories;
+using FinancialTracker.Application.Transactions;
 using FinancialTracker.Application.UserSettings;
 using FinancialTracker.Application.Users;
 using FinancialTracker.Infrastructure.Identity;
@@ -36,6 +37,7 @@ public static class DependencyInjection
         services.AddScoped<IUserSettingsStore, UserSettingsStore>();
         services.AddScoped<IAccountStore, AccountStore>();
         services.AddScoped<ICategoryStore, CategoryStore>();
+        services.AddScoped<ITransactionStore, TransactionStore>();
 
         return services;
     }
