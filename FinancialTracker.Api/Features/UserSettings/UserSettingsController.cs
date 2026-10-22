@@ -1,4 +1,4 @@
-using System.Security.Claims;
+using FinancialTracker.Api.Features.Auth;
 using FinancialTracker.Application.UserSettings;
 using Microsoft.AspNetCore.Mvc;
 
@@ -11,7 +11,7 @@ public class UserSettingsController(GetUserSettings getUserSettings, SetCurrency
     [HttpGet]
     public async Task<ActionResult<UserSettingsResponse>> Get()
     {
-        var settings = await getUserSettings.ExecuteAsync(CurrentUserId());
+        var settings = await getUserSettings.ExecuteAsync(User.Id());
         return new UserSettingsResponse(settings.Email, settings.Currency?.Code);
     }
 
@@ -19,14 +19,9 @@ public class UserSettingsController(GetUserSettings getUserSettings, SetCurrency
     [HttpPut("currency")]
     public async Task<ActionResult<UserSettingsResponse>> SetCurrency(SetCurrencyRequest request)
     {
-        await setCurrency.ExecuteAsync(CurrentUserId(), request.Currency);
+        await setCurrency.ExecuteAsync(User.Id(), request.Currency);
         return await Get();
     }
-
-    private Guid CurrentUserId() =>
-        Guid.TryParse(User.FindFirstValue(ClaimTypes.NameIdentifier), out var userId)
-            ? userId
-            : throw new InvalidOperationException("A signed-in User always carries their id.");
 }
 
 public sealed record UserSettingsResponse(string Email, string? Currency);

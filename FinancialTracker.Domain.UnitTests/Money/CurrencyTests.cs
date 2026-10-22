@@ -30,4 +30,14 @@ public sealed class CurrencyTests
 
         Assert.Contains(code, rejected.Message);
     }
+
+    [Theory]
+    [InlineData("1000000000000000")]
+    [InlineData("-1000000000000000")]
+    public void An_amount_too_large_for_the_database_is_rejected(string amount) =>
+        Assert.Throws<DomainValidationException>(() => Currency.FromCode("USD").EnsureValidAmount(decimal.Parse(amount, CultureInfo.InvariantCulture)));
+
+    [Fact]
+    public void The_largest_amount_the_database_holds_is_accepted() =>
+        Currency.FromCode("KWD").EnsureValidAmount(-999_999_999_999_999.999m);
 }

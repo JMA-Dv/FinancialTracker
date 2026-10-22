@@ -1,14 +1,18 @@
+using System.Text.Json.Serialization;
 using FinancialTracker.Api.Features.Auth;
 using FinancialTracker.Api.ErrorHandling;
 using FinancialTracker.Application;
 using FinancialTracker.Infrastructure;
+using FluentValidation;
 
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddApplication();
 builder.Services.AddInfrastructure();
 builder.Services.AddCookieAuthentication();
-builder.Services.AddControllers();
+builder.Services.AddControllers()
+    .AddJsonOptions(options => options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter(allowIntegerValues: false)));
+builder.Services.AddValidatorsFromAssemblyContaining<Program>(includeInternalTypes: true);
 builder.Services.AddProblemDetails();
 builder.Services.AddExceptionHandler<DomainExceptionHandler>();
 // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi

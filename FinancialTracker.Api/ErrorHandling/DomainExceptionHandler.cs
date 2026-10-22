@@ -13,7 +13,12 @@ public sealed class DomainExceptionHandler(IProblemDetailsService problemDetails
             return false;
         }
 
-        var status = broken is DomainConflictException ? StatusCodes.Status409Conflict : StatusCodes.Status400BadRequest;
+        var status = broken switch
+        {
+            DomainNotFoundException => StatusCodes.Status404NotFound,
+            DomainConflictException => StatusCodes.Status409Conflict,
+            _ => StatusCodes.Status400BadRequest,
+        };
         httpContext.Response.StatusCode = status;
         return await problemDetails.TryWriteAsync(new ProblemDetailsContext
         {
