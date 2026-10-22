@@ -29,9 +29,27 @@ public sealed class TransactionStore(FinanceDbContext dbContext) : ITransactionS
             .Where(transaction => transaction.UserId == userId)
             .Where(transaction => filter.AccountId == null || transaction.AccountId == filter.AccountId)
             .Where(transaction => filter.CategoryId == null || transaction.CategoryId == filter.CategoryId)
+            .Where(transaction => filter.PayeeId == null || transaction.PayeeId == filter.PayeeId)
             .Where(transaction => filter.From == null || transaction.Date >= filter.From)
             .Where(transaction => filter.To == null || transaction.Date <= filter.To)
             .OrderByDescending(transaction => transaction.Date)
             .ThenByDescending(transaction => transaction.Id)
             .ToListAsync();
+
+    public async Task<IReadOnlyDictionary<Guid, Guid>> LatestCategoriesByPayeeAsync(Guid userId, Guid? payeeId)
+    {
+        var latest = await dbContext.Transactions
+            .Where(transaction => transaction.UserId == userId && transaction.PayeeId != null)
+            .Where(transaction => payeeId == null || transaction.PayeeId == payeeId)
+            .GroupBy(transaction => transaction.PayeeId!.Value)
+            .Select(group => new
+            {
+                PayeeId = group.Key,
+                // Same order as the list: the newest date wins, then the last one recorded.
+                CategoryId = group.OrderByDescending(transaction => transaction.Date).ThenByDescending(transaction => transaction.Id)
+                    .Select(transaction => transaction.CategoryId).First(),
+            })
+            .ToListAsync();
+        return latest.ToDictionary(entry => entry.PayeeId, entry => entry.CategoryId);
+    }
 }
