@@ -59,6 +59,18 @@ export const useCategoriesStore = defineStore('categories', () => {
       ]),
   )
 
+  /** The name of a Category in the loaded tree; null when it isn't there, e.g. an Archived one while the tree leaves them out. */
+  function nameOf(id: string): string | null {
+    const stack = [...tree.value]
+    for (let node = stack.pop(); node !== undefined; node = stack.pop()) {
+      if (node.id === id) {
+        return node.name
+      }
+      stack.push(...node.children)
+    }
+    return null
+  }
+
   /** Adds a Category. */
   function create(request: CreateCategoryRequest): Promise<void> {
     return mutate(() => api.post('/api/categories', request))
@@ -82,5 +94,5 @@ export const useCategoriesStore = defineStore('categories', () => {
     await load()
   }
 
-  return { status, failure, tree, includeArchived, selectable, load, create, rename, move, setArchived, setIncludeArchived }
+  return { status, failure, tree, includeArchived, selectable, nameOf, load, create, rename, move, setArchived, setIncludeArchived }
 })

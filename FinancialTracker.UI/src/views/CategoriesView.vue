@@ -3,6 +3,7 @@ import { ElButton, ElSwitch } from 'element-plus'
 import { computed, onMounted, ref } from 'vue'
 import CategorySection from '@/components/CategorySection.vue'
 import ErrorAlert from '@/components/ErrorAlert.vue'
+import LoadFailure from '@/components/LoadFailure.vue'
 import type { CategoryAction } from '@/components/categoryAction'
 import CreateCategoryDialog from '@/components/CreateCategoryDialog.vue'
 import MoveCategoryDialog from '@/components/MoveCategoryDialog.vue'
@@ -54,10 +55,7 @@ onMounted(() => categories.load())
 
     <ErrorAlert v-if="archiving.error.value" :title="archiving.error.value" class="categories__alert" />
 
-    <div v-if="categories.status === 'failed'" class="categories__alert">
-      <ErrorAlert title="Could not load your Categories" :description="categories.failure" />
-      <ElButton class="categories__retry" @click="categories.load()">Try again</ElButton>
-    </div>
+    <LoadFailure v-if="categories.status === 'failed'" title="Could not load your Categories" :description="categories.failure" @retry="categories.load()" />
 
     <p v-if="categories.status === 'idle' || (categories.status === 'loading' && !showLists)" role="status">
       Loading Categories…
@@ -90,9 +88,5 @@ onMounted(() => categories.load())
 
 .categories__alert {
   margin-bottom: 1rem;
-}
-
-.categories__retry {
-  margin-top: 1rem;
 }
 </style>

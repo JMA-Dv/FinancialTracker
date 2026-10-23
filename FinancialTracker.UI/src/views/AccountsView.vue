@@ -7,6 +7,7 @@ import ChangeAccountCurrencyDialog from '@/components/ChangeAccountCurrencyDialo
 import CreateAccountDialog from '@/components/CreateAccountDialog.vue'
 import RenameDialog from '@/components/RenameDialog.vue'
 import ErrorAlert from '@/components/ErrorAlert.vue'
+import LoadFailure from '@/components/LoadFailure.vue'
 import { useSubmit } from '@/composables/useSubmit'
 import { confirmAction } from '@/confirm'
 import { formatMoney } from '@/money'
@@ -75,10 +76,7 @@ onMounted(() => accounts.load())
 
     <ErrorAlert v-if="acting.error.value" :title="acting.error.value" class="accounts__alert" />
 
-    <div v-if="accounts.status === 'failed'" class="accounts__alert">
-      <ErrorAlert title="Could not load your Accounts" :description="accounts.failure" />
-      <ElButton class="accounts__retry" @click="accounts.load()">Try again</ElButton>
-    </div>
+    <LoadFailure v-if="accounts.status === 'failed'" title="Could not load your Accounts" :description="accounts.failure" @retry="accounts.load()" />
 
     <p v-if="accounts.status === 'idle' || (accounts.status === 'loading' && !showLists)" role="status">
       Loading Accounts…
@@ -116,9 +114,5 @@ onMounted(() => accounts.load())
 
 .accounts__alert {
   margin-bottom: 1rem;
-}
-
-.accounts__retry {
-  margin-top: 1rem;
 }
 </style>

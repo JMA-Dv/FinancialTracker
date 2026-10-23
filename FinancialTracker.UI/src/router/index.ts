@@ -31,6 +31,7 @@ export const navItems: NavItem[] = [
 const builtScreens: Record<string, RouteRecordRaw['component']> = {
   '/accounts': () => import('@/views/AccountsView.vue'),
   '/categories': () => import('@/views/CategoriesView.vue'),
+  '/payees': () => import('@/views/PayeesView.vue'),
 }
 
 /** Where to send someone who must sign in first; Google brings them back to `returnUrl`. */

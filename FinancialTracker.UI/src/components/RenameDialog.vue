@@ -4,7 +4,7 @@ import { computed, ref } from 'vue'
 import { useSubmit } from '@/composables/useSubmit'
 import FormDialog from './FormDialog.vue'
 
-/** What can be renamed: a Category or an Account. */
+/** What can be renamed: a Category, an Account or a Payee. */
 interface Renamable {
   id: string
   name: string
