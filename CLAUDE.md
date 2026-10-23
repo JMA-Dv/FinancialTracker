@@ -14,9 +14,9 @@ It provides features such as expense categorization, financial reports, and visu
 
 ## Tech Stack
 
-- Frontend: Vuejs 3 with Vite,typescript, Element plus, and Chart.js for data visualization, pinia.
+- Frontend: Vuejs 3 with Vite,typescript, Element plus, and Chart.js for data visualization, pinia, and vue-router for routing, route-level code splitting and auth guards. The UI lives in `FinancialTracker.UI/`.
 - Backend : .Net 10 Api with Entity Framework Core for database management and RESTful API development following Clean Architecture principles.
-- Testing: xUnit for unit testing and integration testing of the backend API.
+- Testing: xUnit for unit testing and integration testing of the backend API. Vitest with @vue/test-utils and jsdom for frontend component and composable tests (API calls mocked at the `fetch` boundary, no end-to-end tests for now).
 - Database: NeonPostgres.
 - Containerization: Docker for containerizing the application and its dependencies for easy deployment and scalability.
 
@@ -24,6 +24,9 @@ It provides features such as expense categorization, financial reports, and visu
 
 - `pnpm dev`- start UI
 - `pnpm i`- Install node modules
+- `pnpm build`- Build the UI
+- `pnpm typecheck`- Type-check the UI (`vue-tsc --noEmit`)
+- `pnpm test`- Run the UI tests (Vitest)
 
 ## TypeScript
 
