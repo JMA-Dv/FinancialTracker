@@ -138,7 +138,7 @@ describe('when the API cannot be reached', () => {
       'GET /api/user-settings': () =>
         healthy ? json(200, { email: 'ana@example.com', currency: null }) : new Response('Bad gateway', { status: 502 }),
     })
-    const { page } = await visit('/accounts')
+    const { page } = await visit('/transfers')
 
     expect(page.get('[role="alert"]').text()).toContain('The server could not be reached or failed (502).')
     expect(page.text()).not.toContain('Sign in with Google')

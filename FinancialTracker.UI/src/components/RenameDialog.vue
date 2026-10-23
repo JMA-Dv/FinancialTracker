@@ -2,17 +2,21 @@
 import { ElFormItem, ElInput } from 'element-plus'
 import { computed, ref } from 'vue'
 import { useSubmit } from '@/composables/useSubmit'
-import { useCategoriesStore, type CategoryNode } from '@/stores/categories'
 import FormDialog from './FormDialog.vue'
 
-const props = defineProps<{ node: CategoryNode }>()
+/** What can be renamed: a Category or an Account. */
+interface Renamable {
+  id: string
+  name: string
+}
+
+const props = defineProps<{ target: Renamable; rename: (id: string, name: string) => Promise<void> }>()
 const emit = defineEmits<{ close: []; saved: [] }>()
 
-const categories = useCategoriesStore()
-const name = ref(props.node.name)
+const name = ref(props.target.name)
 const canSave = computed(() => name.value.trim() !== '')
 
-const { pending, error, submit } = useSubmit(() => categories.rename(props.node.id, name.value))
+const { pending, error, submit } = useSubmit(() => props.rename(props.target.id, name.value))
 
 async function save(): Promise<void> {
   if (await submit()) {
@@ -23,7 +27,7 @@ async function save(): Promise<void> {
 
 <template>
   <FormDialog
-    :title="`Rename ${node.name}`"
+    :title="`Rename ${target.name}`"
     :pending="pending"
     :can-save="canSave"
     :error="error"

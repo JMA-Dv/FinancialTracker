@@ -1,15 +1,14 @@
 <script setup lang="ts">
-import { ElButton, ElForm, ElFormItem, ElOption, ElSelect } from 'element-plus'
+import { ElButton, ElForm, ElFormItem } from 'element-plus'
 import { ref } from 'vue'
 import { useSubmit } from '@/composables/useSubmit'
-import { currencyOptions } from '@/currencies'
 import { useSessionStore } from '@/stores/session'
+import CurrencySelect from './CurrencySelect.vue'
 import ErrorAlert from './ErrorAlert.vue'
 
 const emit = defineEmits<{ saved: [] }>()
 
 const session = useSessionStore()
-const options = currencyOptions()
 const choice = ref<string>(session.settings?.currency ?? '')
 const saved = ref(false)
 
@@ -33,14 +32,7 @@ async function save(): Promise<void> {
     <p role="status">{{ saved ? 'Currency saved.' : '' }}</p>
     <ErrorAlert v-if="error" :title="error" class="currency-form__error" />
     <ElFormItem label="Currency">
-      <ElSelect v-model="choice" filterable placeholder="Search by code or name">
-        <ElOption
-          v-for="option in options"
-          :key="option.code"
-          :value="option.code"
-          :label="option.label"
-        />
-      </ElSelect>
+      <CurrencySelect v-model="choice" />
     </ElFormItem>
     <ElButton type="primary" native-type="submit" :loading="pending" :disabled="choice === ''">Save</ElButton>
   </ElForm>

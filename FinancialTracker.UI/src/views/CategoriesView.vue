@@ -6,7 +6,7 @@ import ErrorAlert from '@/components/ErrorAlert.vue'
 import type { CategoryAction } from '@/components/categoryAction'
 import CreateCategoryDialog from '@/components/CreateCategoryDialog.vue'
 import MoveCategoryDialog from '@/components/MoveCategoryDialog.vue'
-import RenameCategoryDialog from '@/components/RenameCategoryDialog.vue'
+import RenameDialog from '@/components/RenameDialog.vue'
 import { useSubmit } from '@/composables/useSubmit'
 import { useCategoriesStore, type CategoryNode } from '@/stores/categories'
 
@@ -69,7 +69,7 @@ onMounted(() => categories.load())
 
     <CreateCategoryDialog v-if="creating" @close="creating = false" @saved="creating = false" />
     <MoveCategoryDialog v-if="moving" :node="moving.node" :parent="moving.parent" @close="moving = null" @saved="moving = null" />
-    <RenameCategoryDialog v-if="renaming" :node="renaming" @close="renaming = null" @saved="renaming = null" />
+    <RenameDialog v-if="renaming" :target="renaming" :rename="categories.rename" @close="renaming = null" @saved="renaming = null" />
   </section>
 </template>
 
