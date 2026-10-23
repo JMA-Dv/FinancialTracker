@@ -5,6 +5,7 @@ import AccountHistoryTable from '@/components/AccountHistoryTable.vue'
 import BalanceAdjustmentDialog from '@/components/BalanceAdjustmentDialog.vue'
 import BalanceOnDate from '@/components/BalanceOnDate.vue'
 import ErrorAlert from '@/components/ErrorAlert.vue'
+import LoadFailure from '@/components/LoadFailure.vue'
 import {
   adjustmentName,
   openingBalanceId,
@@ -51,10 +52,7 @@ onMounted(() => history.load())
     <RouterLink to="/accounts">← Accounts</RouterLink>
     <h1>{{ account?.name ?? 'Account' }}</h1>
 
-    <div v-if="history.status.value === 'failed'" class="account__alert">
-      <ErrorAlert title="Could not load this Account" :description="history.failure.value" />
-      <ElButton class="account__retry" @click="history.load()">Try again</ElButton>
-    </div>
+    <LoadFailure v-if="history.status.value === 'failed'" title="Could not load this Account" :description="history.failure.value" @retry="history.load()" />
 
     <p v-if="history.status.value === 'idle' || (history.status.value === 'loading' && !account)" role="status">
       Loading history…
@@ -111,9 +109,5 @@ onMounted(() => history.load())
 <style scoped>
 .account__alert {
   margin: 1rem 0;
-}
-
-.account__retry {
-  margin-top: 1rem;
 }
 </style>

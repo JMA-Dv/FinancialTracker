@@ -1,7 +1,6 @@
 <script setup lang="ts">
-import { ElButton } from 'element-plus'
 import { computed, onMounted, ref } from 'vue'
-import ErrorAlert from '@/components/ErrorAlert.vue'
+import LoadFailure from '@/components/LoadFailure.vue'
 import PayeeRow from '@/components/PayeeRow.vue'
 import RenameDialog from '@/components/RenameDialog.vue'
 import { useCategoriesStore } from '@/stores/categories'
@@ -27,10 +26,7 @@ onMounted(() => {
   <section>
     <h1>Payees</h1>
 
-    <div v-if="payees.status === 'failed'" class="payees__alert">
-      <ErrorAlert title="Could not load your Payees" :description="payees.failure" />
-      <ElButton class="payees__retry" @click="payees.load()">Try again</ElButton>
-    </div>
+    <LoadFailure v-if="payees.status === 'failed'" title="Could not load your Payees" :description="payees.failure" @retry="payees.load()" />
 
     <p v-if="payees.status === 'idle' || (payees.status === 'loading' && !showList)" role="status">Loading Payees…</p>
     <template v-else-if="showList">
@@ -57,13 +53,5 @@ onMounted(() => {
   list-style: none;
   margin: 0;
   padding: 0;
-}
-
-.payees__alert {
-  margin-bottom: 1rem;
-}
-
-.payees__retry {
-  margin-top: 1rem;
 }
 </style>
