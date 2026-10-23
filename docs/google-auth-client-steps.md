@@ -34,6 +34,7 @@ In **Data access** you can add `openid`, `.../auth/userinfo.email` and `.../auth
 2. **Application type:** Web application. **Name:** `Finance Tracker (local)`.
 3. **Authorized JavaScript origins:** leave empty. The sign-in flow runs on the server.
 4. **Authorized redirect URIs:** add `https://localhost:7204/signin-google`. It must match exactly: `https`, port `7204`, no trailing slash.
+   To sign in through the web app (`FinancialTracker.UI`), also add `https://localhost:5173/signin-google`: the dev server proxies the API, so Google sends the browser back to the dev server's origin. See the [UI README](../FinancialTracker.UI/README.md#signing-in-with-google) for running the dev server over https.
 5. Click **Create**. Copy the **Client ID** and **Client secret**, or download the JSON.
 
 > **Google shows the client secret only once, when the client is created.** If you lose it, add a new secret to the client.
@@ -94,7 +95,7 @@ The API stops at startup if either one is missing.
 
 | What you see | Cause | Fix |
 |---|---|---|
-| `redirect_uri_mismatch` | The redirect URI in step 5 doesn't exactly match the URL the API runs on | Check the scheme, port and path match exactly |
+| `redirect_uri_mismatch` | The redirect URI in step 5 doesn't exactly match the URL the API runs on, or the dev server's origin when signing in from the web app | Check the scheme, port and path match exactly |
 | "Access blocked" or "app has not completed verification" | The Google account isn't a test user | Add it in step 3 |
 | "Correlation failed" after returning from Google | The API is running on `http` | Use the `https` launch profile |
 | The API stops at startup with `Value cannot be null. (Parameter 'ClientId')` | The client id or secret isn't configured | Repeat step 6 |
