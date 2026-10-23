@@ -23,3 +23,59 @@ export const flights: FixtureCategory = { id: 'flights', name: 'Flights', kind: 
 
 /** Archived, with a child that is not archived itself. */
 export const travel: FixtureCategory = { id: 'travel', name: 'Travel', kind: 'Expense', isArchived: true, children: [flights] }
+
+/** An Account as `GET /api/accounts` returns it. */
+export interface FixtureAccount {
+  id: string
+  name: string
+  kind: string
+  currency: string
+  balance: number
+  isLiability: boolean
+  isClosed: boolean
+  openingBalance: { amount: number; date: string } | null
+}
+
+export const checking: FixtureAccount = {
+  id: 'checking',
+  name: 'Everyday',
+  kind: 'Checking',
+  currency: 'USD',
+  balance: 1250.5,
+  isLiability: false,
+  isClosed: false,
+  openingBalance: null,
+}
+
+export const wallet: FixtureAccount = {
+  id: 'wallet',
+  name: 'Wallet',
+  kind: 'Cash',
+  currency: 'MXN',
+  balance: 3000,
+  isLiability: false,
+  isClosed: false,
+  openingBalance: null,
+}
+
+export const visa: FixtureAccount = {
+  id: 'visa',
+  name: 'Visa',
+  kind: 'CreditCard',
+  currency: 'USD',
+  balance: -300,
+  isLiability: true,
+  isClosed: false,
+  openingBalance: null,
+}
+
+export const oldSavings: FixtureAccount = {
+  id: 'old-savings',
+  name: 'Old savings',
+  kind: 'Savings',
+  currency: 'USD',
+  balance: 0,
+  isLiability: false,
+  isClosed: true,
+  openingBalance: null,
+}

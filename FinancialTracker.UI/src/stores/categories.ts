@@ -1,6 +1,7 @@
 import { defineStore } from 'pinia'
 import { computed, ref } from 'vue'
-import { api, describeFailure } from '@/api/client'
+import { api } from '@/api/client'
+import { useLoadedList } from '@/composables/useLoadedList'
 
 export type CategoryKind = 'Income' | 'Expense'
 
@@ -29,13 +30,16 @@ export interface CreateCategoryRequest {
   parentId?: string
 }
 
-export type CategoriesStatus = 'idle' | 'loading' | 'ready' | 'failed'
-
 export const useCategoriesStore = defineStore('categories', () => {
-  const status = ref<CategoriesStatus>('idle')
-  const failure = ref('')
-  const tree = ref<CategoryNode[]>([])
   const includeArchived = ref(false)
+  const {
+    status,
+    failure,
+    items: tree,
+    load,
+  } = useLoadedList(() =>
+    api.get<CategoryNode[]>(includeArchived.value ? '/api/categories?includeArchived=true' : '/api/categories'),
+  )
 
   // Archived Categories, and what is under them, can't take new Transactions even when the tree lists them.
   const selectable = computed<SelectableCategory[]>(() =>
@@ -53,29 +57,6 @@ export const useCategoriesStore = defineStore('categories', () => {
           })),
       ]),
   )
-
-  let latestRequest = 0
-
-  /** Fetches the tree again, with or without the Archived Categories. A failure keeps the tree already shown. */
-  async function load(): Promise<void> {
-    const request = ++latestRequest
-    status.value = 'loading'
-    failure.value = ''
-    try {
-      const path = includeArchived.value ? '/api/categories?includeArchived=true' : '/api/categories'
-      const loaded = await api.get<CategoryNode[]>(path)
-      // A slower, older answer must not replace a newer one.
-      if (request === latestRequest) {
-        tree.value = loaded
-        status.value = 'ready'
-      }
-    } catch (error) {
-      if (request === latestRequest) {
-        status.value = 'failed'
-        failure.value = describeFailure(error)
-      }
-    }
-  }
 
   /** Runs a change, then refreshes the tree so every screen sees it. */
   async function mutate(change: () => Promise<unknown>): Promise<void> {

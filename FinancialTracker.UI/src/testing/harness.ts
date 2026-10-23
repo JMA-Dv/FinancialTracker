@@ -45,7 +45,11 @@ export async function visit(path: string): Promise<{ page: DOMWrapper<HTMLElemen
 }
 
 export const signedOut = { 'GET /api/user-settings': () => json(401) }
-export const signedIn = { 'GET /api/user-settings': () => json(200, { email: 'ana@example.com', currency: 'USD' }) }
+/** A signed-in User with a Currency and no Accounts, so the landing screen has something to show. */
+export const signedIn = {
+  'GET /api/user-settings': () => json(200, { email: 'ana@example.com', currency: 'USD' }),
+  'GET /api/accounts': () => json(200, []),
+}
 
 afterEach(() => {
   mounted.splice(0).forEach((app) => app.unmount())
@@ -84,4 +88,22 @@ export async function press(scope: Scope, name: string): Promise<void> {
   }
   await new DOMWrapper(button).trigger('click')
   await flushPromises()
+}
+
+/** The form item inside `scope` whose label is `label`, to reach its input or select. */
+export function field(scope: Scope, label: string): DOMWrapper<Element> {
+  const items = Array.from(scope.element.querySelectorAll('.el-form-item'))
+  const item = items.find((candidate) => candidate.querySelector('.el-form-item__label')?.textContent?.trim() === label)
+  if (item === undefined) {
+    throw new Error(`No field labelled "${label}"`)
+  }
+  return new DOMWrapper(item)
+}
+
+/** What `get` returns for a selector: an element wrapper that is known to exist. */
+export type FoundElement = Omit<DOMWrapper<Element>, 'exists'>
+
+/** The open dialog, wherever Element Plus put it. */
+export function dialog(): FoundElement {
+  return documentBody().get('[role="dialog"]')
 }

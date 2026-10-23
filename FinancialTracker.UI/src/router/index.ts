@@ -29,6 +29,7 @@ export const navItems: NavItem[] = [
 
 /** Screens that exist; the rest of `navItems` show "coming soon". */
 const builtScreens: Record<string, RouteRecordRaw['component']> = {
+  '/accounts': () => import('@/views/AccountsView.vue'),
   '/categories': () => import('@/views/CategoriesView.vue'),
 }
 
