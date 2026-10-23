@@ -107,3 +107,61 @@ export interface FixturePayee {
 export const corner: FixturePayee = { id: 'corner', name: 'Corner Market', suggestedCategoryId: 'groceries' }
 
 export const landlord: FixturePayee = { id: 'landlord', name: 'Landlord', suggestedCategoryId: null }
+
+/** A Transaction as `GET /api/transactions` returns it; `direction` is a string because the test types it loosely. */
+export interface FixtureTransaction {
+  id: string
+  accountId: string
+  date: string
+  direction: string
+  amount: number
+  categoryId: string
+  payeeId: string | null
+  note: string | null
+}
+
+export const shopping: FixtureTransaction = {
+  id: 'shopping',
+  accountId: 'checking',
+  date: '2026-10-05',
+  direction: 'Out',
+  amount: 40.5,
+  categoryId: 'groceries',
+  payeeId: 'corner',
+  note: 'Weekly shop',
+}
+
+/** In, in an Expense Category: a Refund. */
+export const refund: FixtureTransaction = {
+  id: 'refund',
+  accountId: 'checking',
+  date: '2026-10-03',
+  direction: 'In',
+  amount: 12,
+  categoryId: 'groceries',
+  payeeId: 'corner',
+  note: null,
+}
+
+export const pay: FixtureTransaction = {
+  id: 'pay',
+  accountId: 'checking',
+  date: '2026-10-01',
+  direction: 'In',
+  amount: 2000,
+  categoryId: 'salary',
+  payeeId: null,
+  note: null,
+}
+
+/** On an Account that is closed. */
+export const oldPurchase: FixtureTransaction = {
+  id: 'old-purchase',
+  accountId: 'old-savings',
+  date: '2026-08-01',
+  direction: 'Out',
+  amount: 5,
+  categoryId: 'groceries',
+  payeeId: null,
+  note: null,
+}

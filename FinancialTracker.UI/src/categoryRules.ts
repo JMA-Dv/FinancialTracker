@@ -1,4 +1,29 @@
-import type { CategoryNode } from '@/stores/categories'
+import type { CategoryKind, CategoryNode } from '@/stores/categories'
+
+/** A Category in a picker. */
+export interface CategoryOption {
+  id: string
+  name: string
+  kind: CategoryKind
+  /** The name, with the parent's in front for a child: "Groceries › Market". */
+  label: string
+  /** Archived itself or under an Archived Category; either way it can't take new Transactions. */
+  isArchived: boolean
+}
+
+/** The tree as a flat list, each parent followed by its children. */
+export function flattenCategories(tree: CategoryNode[]): CategoryOption[] {
+  return tree.flatMap((parent) => [
+    { id: parent.id, name: parent.name, kind: parent.kind, label: parent.name, isArchived: parent.isArchived },
+    ...parent.children.map((child) => ({
+      id: child.id,
+      name: child.name,
+      kind: child.kind,
+      label: `${parent.name} › ${child.name}`,
+      isArchived: parent.isArchived || child.isArchived,
+    })),
+  ])
+}
 
 /** The top-level Categories `node` may sit under: unarchived, of its kind, and not itself. */
 export function moveTargets(node: CategoryNode, tree: CategoryNode[]): CategoryNode[] {

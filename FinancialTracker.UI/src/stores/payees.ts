@@ -25,10 +25,15 @@ export const usePayeesStore = defineStore('payees', () => {
     return payees.value.find((payee) => payee.name.toLowerCase() === wanted)?.suggestedCategoryId ?? null
   }
 
+  /** The name of the Payee with this id, or null when it isn't in the loaded list. */
+  function nameOf(id: string): string | null {
+    return payees.value.find((payee) => payee.id === id)?.name ?? null
+  }
+
   /** Renames the Payee everywhere it is used. */
   function rename(id: string, name: string): Promise<void> {
     return mutate(() => api.put(`/api/payees/${id}/name`, { name }))
   }
 
-  return { status, failure, payees, load, suggest, suggestedCategoryId, rename }
+  return { status, failure, payees, load, suggest, suggestedCategoryId, nameOf, rename }
 })

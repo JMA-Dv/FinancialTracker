@@ -1,6 +1,7 @@
 import { defineStore } from 'pinia'
 import { computed, ref } from 'vue'
 import { api } from '@/api/client'
+import { flattenCategories, type CategoryOption } from '@/categoryRules'
 import { useLoadedList } from '@/composables/useLoadedList'
 
 export type CategoryKind = 'Income' | 'Expense'
@@ -12,15 +13,6 @@ export interface CategoryNode {
   kind: CategoryKind
   isArchived: boolean
   children: CategoryNode[]
-}
-
-/** A Category a new Transaction may use, for pickers. */
-export interface SelectableCategory {
-  id: string
-  name: string
-  kind: CategoryKind
-  /** The name, with the parent's in front for a child: "Groceries › Market". */
-  label: string
 }
 
 /** A child names its parent and takes its kind; a top-level Category names its kind. */
@@ -43,21 +35,7 @@ export const useCategoriesStore = defineStore('categories', () => {
   )
 
   // Archived Categories, and what is under them, can't take new Transactions even when the tree lists them.
-  const selectable = computed<SelectableCategory[]>(() =>
-    tree.value
-      .filter((parent) => !parent.isArchived)
-      .flatMap((parent) => [
-        { id: parent.id, name: parent.name, kind: parent.kind, label: parent.name },
-        ...parent.children
-          .filter((child) => !child.isArchived)
-          .map((child) => ({
-            id: child.id,
-            name: child.name,
-            kind: child.kind,
-            label: `${parent.name} › ${child.name}`,
-          })),
-      ]),
-  )
+  const selectable = computed<CategoryOption[]>(() => flattenCategories(tree.value).filter((option) => !option.isArchived))
 
   /** The name of a Category in the loaded tree; null when it isn't there, e.g. an Archived one while the tree leaves them out. */
   function nameOf(id: string): string | null {

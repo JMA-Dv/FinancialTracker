@@ -31,6 +31,7 @@ export const navItems: NavItem[] = [
 const builtScreens: Record<string, RouteRecordRaw['component']> = {
   '/accounts': () => import('@/views/AccountsView.vue'),
   '/categories': () => import('@/views/CategoriesView.vue'),
+  '/transactions': () => import('@/views/TransactionsView.vue'),
   '/payees': () => import('@/views/PayeesView.vue'),
 }
 
