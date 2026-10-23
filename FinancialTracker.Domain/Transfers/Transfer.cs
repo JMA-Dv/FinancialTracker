@@ -49,6 +49,7 @@ public sealed class Transfer
     /// </param>
     /// <param name="today">Today's date, which a Transfer can't be after. Earlier dates are fine, even before an Opening Balance.</param>
     /// <exception cref="DomainValidationException">The Accounts, date, amounts or note break a rule.</exception>
+    /// <exception cref="DomainConflictException">Either Account is closed.</exception>
     public static Transfer Create(
         Account from, Account to, DateOnly date, decimal amount, decimal? receivedAmount, string? note, DateOnly today)
     {
@@ -57,10 +58,30 @@ public sealed class Transfer
     }
 
     /// <summary>Replaces every field. Nothing changes unless all of it is valid.</summary>
+    /// <param name="currentFrom">The Account the Transfer leaves now.</param>
+    /// <param name="currentTo">The Account the Transfer arrives in now.</param>
+    /// <param name="from">The Account it will leave, which may be the same.</param>
+    /// <param name="to">The Account it will arrive in, which may be the same.</param>
     /// <exception cref="DomainValidationException">The Accounts, date, amounts or note break a rule.</exception>
+    /// <exception cref="DomainConflictException">Any of the four Accounts is closed.</exception>
     public void Edit(
-        Account from, Account to, DateOnly date, decimal amount, decimal? receivedAmount, string? note, DateOnly today)
+        Account currentFrom,
+        Account currentTo,
+        Account from,
+        Account to,
+        DateOnly date,
+        decimal amount,
+        decimal? receivedAmount,
+        string? note,
+        DateOnly today)
     {
+        ArgumentOutOfRangeException.ThrowIfNotEqual(currentFrom.Id, FromAccountId);
+        ArgumentOutOfRangeException.ThrowIfNotEqual(currentTo.Id, ToAccountId);
+
+        // Moving money off a Closed Account would leave it holding a balance.
+        currentFrom.EnsureOpen();
+        currentTo.EnsureOpen();
+
         var received = EnsureValid(from, to, date, amount, receivedAmount, note, today);
         FromAccountId = from.Id;
         ToAccountId = to.Id;
@@ -74,6 +95,9 @@ public sealed class Transfer
     private static decimal EnsureValid(
         Account from, Account to, DateOnly date, decimal amount, decimal? receivedAmount, string? note, DateOnly today)
     {
+        from.EnsureOpen();
+        to.EnsureOpen();
+
         if (from.Id == to.Id)
         {
             throw new DomainValidationException("Same Account", "A Transfer needs two different Accounts.");

@@ -15,6 +15,8 @@ public class AccountsController(
     GetAccount getAccount,
     RenameAccount renameAccount,
     ChangeAccountCurrency changeAccountCurrency,
+    CloseAccount closeAccount,
+    ReopenAccount reopenAccount,
     GetAccountBalance getAccountBalance,
     GetAccountHistory getAccountHistory,
     IValidator<CreateAccountRequest> createValidator,
@@ -22,9 +24,10 @@ public class AccountsController(
     IValidator<ChangeAccountCurrencyRequest> changeCurrencyValidator)
     : ControllerBase
 {
+    /// <summary>The User's Accounts. Closed Accounts are left out unless asked for.</summary>
     [HttpGet]
-    public async Task<IReadOnlyList<AccountResponse>> List() =>
-        (await listAccounts.ExecuteAsync(User.Id())).Select(AccountResponse.Of).ToList();
+    public async Task<IReadOnlyList<AccountResponse>> List(bool includeClosed = false) =>
+        (await listAccounts.ExecuteAsync(User.Id(), includeClosed)).Select(AccountResponse.Of).ToList();
 
     [HttpPost]
     public async Task<ActionResult<AccountResponse>> Create(CreateAccountRequest request)
@@ -73,6 +76,14 @@ public class AccountsController(
 
         return AccountResponse.Of(await changeAccountCurrency.ExecuteAsync(User.Id(), id, request.Currency));
     }
+
+    /// <summary>Closes the Account, keeping its history. Refused with 409 unless its balance is zero.</summary>
+    [HttpPost("{id:guid}/close")]
+    public async Task<AccountResponse> Close(Guid id) => AccountResponse.Of(await closeAccount.ExecuteAsync(User.Id(), id));
+
+    /// <summary>Opens a Closed Account again so money can be recorded against it.</summary>
+    [HttpPost("{id:guid}/reopen")]
+    public async Task<AccountResponse> Reopen(Guid id) => AccountResponse.Of(await reopenAccount.ExecuteAsync(User.Id(), id));
 
     /// <summary>What the Account held at the end of a date that isn't after today.</summary>
     [HttpGet("{id:guid}/balance")]
@@ -176,6 +187,7 @@ public sealed record AccountResponse(
     string Currency,
     decimal Balance,
     bool IsLiability,
+    bool IsClosed,
     OpeningBalanceResponse? OpeningBalance)
 {
     public static AccountResponse Of(AccountSummary account) =>
@@ -186,5 +198,6 @@ public sealed record AccountResponse(
             account.Currency.Code,
             account.Balance,
             account.IsLiability,
+            account.IsClosed,
             account.OpeningBalance is { } opening ? new OpeningBalanceResponse(opening.Balance, opening.Date) : null);
 }
