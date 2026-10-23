@@ -16,6 +16,7 @@ public class PayeesController(ListPayees listPayees, RenamePayee renamePayee, IV
     public async Task<IReadOnlyList<PayeeResponse>> List() =>
         (await listPayees.ExecuteAsync(User.Id())).Select(PayeeResponse.Of).ToList();
 
+    /// <summary>Renames the Payee on every Transaction that uses it. A name another Payee has, whatever its case, is a 409.</summary>
     [HttpPut("{id:guid}/name")]
     public async Task<ActionResult<PayeeResponse>> Rename(Guid id, RenamePayeeRequest request)
     {

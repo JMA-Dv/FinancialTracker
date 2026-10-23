@@ -26,6 +26,7 @@ public interface IPayeeStore
     Task SaveChangesAsync();
 }
 
+/// <summary>Lookups built on <see cref="IPayeeStore"/>.</summary>
 public static class PayeeStoreExtensions
 {
     /// <exception cref="PayeeNotFoundException">The Payee doesn't exist or belongs to another User.</exception>
