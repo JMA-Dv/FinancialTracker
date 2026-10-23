@@ -26,6 +26,9 @@ public interface ITransactionStore
 }
 
 /// <summary>Narrows a list of Transactions. A null field doesn't narrow.</summary>
+/// <param name="CategoryId">
+/// The Category and the ones under it, Archived included, so a parent's list adds up to its total in the Category breakdown.
+/// </param>
 /// <param name="From">The earliest date to include.</param>
 /// <param name="To">The latest date to include.</param>
 public sealed record TransactionFilter(Guid? AccountId, Guid? CategoryId, Guid? PayeeId, DateOnly? From, DateOnly? To)

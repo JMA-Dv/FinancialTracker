@@ -155,6 +155,37 @@ public sealed class TransactionTests(ApiFactory api)
     }
 
     [Fact]
+    public async Task Filtering_by_a_parent_Category_includes_its_child_Categories_Transactions_even_Archived_ones()
+    {
+        var user = await api.CreateSignedInUserWithCurrencyAsync("USD");
+        var checking = await OpenAccountAsync(user, openingBalance: 0m);
+        var groceries = await CategoryAsync(user, "Groceries");
+        var market = await CreateCategoryAsync(user, "Market", groceries.Id);
+        var bakery = await CreateCategoryAsync(user, "Bakery", groceries.Id);
+        var onGroceries = await RecordAsync(user, New(checking.Id, groceries.Id, date: Today.AddDays(-3), amount: 100m));
+        var atMarket = await RecordAsync(user, New(checking.Id, market.Id, date: Today.AddDays(-2), amount: 200m));
+        var atBakery = await RecordAsync(user, New(checking.Id, bakery.Id, date: Today.AddDays(-1), amount: 5m));
+        await RecordAsync(user, New(checking.Id, (await CategoryAsync(user, "Dining")).Id, amount: 7m));
+        (await user.Client.PostAsync($"{CategoriesEndpoint}/{bakery.Id}/archive", content: null)).EnsureSuccessStatusCode();
+
+        Assert.Equal([atBakery, atMarket, onGroceries], await ListAsync(user, $"?categoryId={groceries.Id}"));
+        Assert.Equal([atMarket], await ListAsync(user, $"?categoryId={market.Id}"));
+    }
+
+    [Fact]
+    public async Task Filtering_by_another_Users_Category_is_not_found()
+    {
+        var owner = await api.CreateSignedInUserWithCurrencyAsync("USD");
+        var ownerCategory = await CategoryAsync(owner, "Groceries");
+        await RecordAsync(owner, New((await OpenAccountAsync(owner, 0m)).Id, ownerCategory.Id));
+        var stranger = await api.CreateSignedInUserWithCurrencyAsync("USD");
+
+        var listed = await stranger.Client.GetAsync($"{TransactionsEndpoint}?categoryId={ownerCategory.Id}");
+
+        Assert.Equal(HttpStatusCode.NotFound, listed.StatusCode);
+    }
+
+    [Fact]
     public async Task Editing_a_Transaction_changes_any_field_and_the_balances_follow()
     {
         var user = await api.CreateSignedInUserWithCurrencyAsync("USD");
@@ -345,6 +376,13 @@ public sealed class TransactionTests(ApiFactory api)
     {
         var tree = await user.Client.GetFromJsonAsync<List<CategoryView>>(CategoriesEndpoint);
         return Assert.Single(tree!, node => node.Name == name);
+    }
+
+    private static async Task<CategoryView> CreateCategoryAsync(SignedInUser user, string name, Guid parentId)
+    {
+        var created = await user.Client.PostAsJsonAsync(CategoriesEndpoint, new { name, parentId });
+        created.EnsureSuccessStatusCode();
+        return (await created.Content.ReadFromJsonAsync<CategoryView>())!;
     }
 
     private static DateOnly Today => DateOnly.FromDateTime(DateTime.UtcNow);

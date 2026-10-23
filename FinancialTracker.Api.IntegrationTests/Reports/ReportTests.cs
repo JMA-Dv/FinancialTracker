@@ -193,6 +193,29 @@ public sealed class ReportTests(ApiFactory api)
     }
 
     [Fact]
+    public async Task The_Transactions_listed_for_a_parent_Category_add_up_to_its_total_in_the_Category_breakdown()
+    {
+        var user = await api.CreateSignedInUserWithCurrencyAsync("USD");
+        var checking = await OpenAccountAsync(user, "Checking", "Checking", "USD", 1000m);
+        var groceries = await CategoryAsync(user, "Groceries");
+        var market = await CreateCategoryAsync(user, "Market", groceries.Id);
+        await RecordAsync(user, checking.Id, groceries.Id, Today.AddDays(-5), "Out", 100m);
+        await RecordAsync(user, checking.Id, market.Id, Today.AddDays(-4), "Out", 220m);
+        await RecordAsync(user, checking.Id, market.Id, Today.AddDays(-3), "In", 20m);
+        await RecordAsync(user, checking.Id, market.Id, Today.AddDays(-40), "Out", 999m);
+        (await user.Client.PostAsync($"/api/categories/{market.Id}/archive", content: null)).EnsureSuccessStatusCode();
+        var (from, to) = (Today.AddDays(-10), Today);
+
+        var report = await CategoryBreakdownAsync(user, from, to);
+        var listed = (await user.Client.GetFromJsonAsync<List<TransactionView>>(
+            $"/api/transactions?categoryId={groceries.Id}&from={from:yyyy-MM-dd}&to={to:yyyy-MM-dd}"))!;
+
+        var total = Assert.Single(Assert.Single(report.Currencies).Categories, c => c.Id == groceries.Id).Total;
+        Assert.Equal(300m, total);
+        Assert.Equal(total, listed.Sum(t => t.Direction == "Out" ? t.Amount : -t.Amount));
+    }
+
+    [Fact]
     public async Task Spending_by_Payee_adds_up_Expense_Transactions_per_Currency_and_nets_off_Refunds()
     {
         var user = await api.CreateSignedInUserWithCurrencyAsync("USD");
@@ -338,6 +361,8 @@ public sealed class ReportTests(ApiFactory api)
     private sealed record PayeeSpendingView(DateOnly From, DateOnly To, List<PayeeCurrencyView> Currencies);
 
     private sealed record IdView(Guid Id);
+
+    private sealed record TransactionView(string Direction, decimal Amount);
 
     private sealed record CategoryTotalView(
         Guid Id, string Name, string Kind, bool IsArchived, decimal Total, decimal OwnAmount, List<CategoryTotalView> Children);

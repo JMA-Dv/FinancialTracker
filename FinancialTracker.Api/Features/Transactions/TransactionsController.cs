@@ -18,6 +18,7 @@ public class TransactionsController(
     : ControllerBase
 {
     /// <summary>The User's Transactions, newest first. Every filter is optional and they combine.</summary>
+    /// <param name="categoryId">Only Transactions in this Category or the ones under it.</param>
     /// <param name="from">The earliest date to include.</param>
     /// <param name="payeeId">Only Transactions with this Payee.</param>
     /// <param name="to">The latest date to include.</param>
