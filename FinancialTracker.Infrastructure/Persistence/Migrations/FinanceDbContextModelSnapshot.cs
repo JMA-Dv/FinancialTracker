@@ -33,6 +33,9 @@ namespace FinancialTracker.Infrastructure.Persistence.Migrations
                         .HasColumnType("character(3)")
                         .IsFixedLength();
 
+                    b.Property<bool>("IsClosed")
+                        .HasColumnType("boolean");
+
                     b.Property<string>("Kind")
                         .IsRequired()
                         .HasMaxLength(20)

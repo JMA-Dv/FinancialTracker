@@ -9,10 +9,12 @@ public sealed class EditTransfer(IAccountStore accounts, ITransferStore transfer
     public async Task<Transfer> ExecuteAsync(Guid userId, Guid transferId, TransferDetails details)
     {
         var transfer = await transfers.GetAsync(userId, transferId);
-        var from = await accounts.GetAsync(userId, details.FromAccountId);
-        var to = await accounts.GetAsync(userId, details.ToAccountId);
+        var currentFrom = await accounts.GetAsync(userId, transfer.FromAccountId);
+        var currentTo = await accounts.GetAsync(userId, transfer.ToAccountId);
+        var from = details.FromAccountId == currentFrom.Id ? currentFrom : await accounts.GetAsync(userId, details.FromAccountId);
+        var to = details.ToAccountId == currentTo.Id ? currentTo : await accounts.GetAsync(userId, details.ToAccountId);
 
-        transfer.Edit(from, to, details.Date, details.Amount, details.ReceivedAmount, details.Note, clock.Today());
+        transfer.Edit(currentFrom, currentTo, from, to, details.Date, details.Amount, details.ReceivedAmount, details.Note, clock.Today());
         await transfers.SaveChangesAsync();
         return transfer;
     }

@@ -50,7 +50,7 @@ public sealed class Transaction
 
     /// <param name="today">Today's date, which a Transaction can't be after. Earlier dates are fine, even before the Opening Balance.</param>
     /// <exception cref="DomainValidationException">The date, direction, amount or note breaks a rule.</exception>
-    /// <exception cref="DomainConflictException">The Category is archived.</exception>
+    /// <exception cref="DomainConflictException">The Account is closed, or the Category is archived.</exception>
     public static Transaction Create(
         Account account,
         DateOnly date,
@@ -61,6 +61,7 @@ public sealed class Transaction
         string? note,
         DateOnly today)
     {
+        account.EnsureOpen();
         EnsureValid(account, date, direction, amount, note, today);
         EnsureCategoryUsable(category);
         return new Transaction(Guid.CreateVersion7(), account.UserId, account.Id, date, direction, amount, category.Id, payee?.Id, note);
@@ -70,7 +71,9 @@ public sealed class Transaction
     /// <param name="currentAccount">The Account the Transaction is on now.</param>
     /// <param name="account">The Account it will be on, which may be the same.</param>
     /// <exception cref="DomainValidationException">A field breaks a rule, or the new Account has another Currency.</exception>
-    /// <exception cref="DomainConflictException">The Category is archived and isn't the one the Transaction already has.</exception>
+    /// <exception cref="DomainConflictException">
+    /// Either Account is closed, or the Category is archived and isn't the one the Transaction already has.
+    /// </exception>
     public void Edit(
         Account currentAccount,
         Account account,
@@ -83,6 +86,10 @@ public sealed class Transaction
         DateOnly today)
     {
         ArgumentOutOfRangeException.ThrowIfNotEqual(currentAccount.Id, AccountId);
+
+        // Moving money off a Closed Account would leave it holding a balance.
+        currentAccount.EnsureOpen();
+        account.EnsureOpen();
 
         // Nothing is ever converted (ADR 0003), so money can't change Currency by changing Account.
         if (account.Currency != currentAccount.Currency)
