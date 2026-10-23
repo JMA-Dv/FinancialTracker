@@ -10,7 +10,13 @@ const emit = defineEmits<{ action: [action: AccountAction] }>()
 
 <template>
   <div class="account-row">
-    <span class="account-row__name" :class="{ 'account-row__name--closed': account.isClosed }">{{ account.name }}</span>
+    <RouterLink
+      :to="{ name: 'account', params: { id: account.id } }"
+      class="account-row__name"
+      :class="{ 'account-row__name--closed': account.isClosed }"
+    >
+      {{ account.name }}
+    </RouterLink>
     <ElTag v-if="account.isClosed" type="info" size="small" disable-transitions>Closed</ElTag>
     <span class="account-row__balance">{{ formatMoney(account.balance, account.currency) }}</span>
     <span class="account-row__actions">

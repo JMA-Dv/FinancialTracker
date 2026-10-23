@@ -52,6 +52,13 @@ const routes: RouteRecordRaw[] = [
     meta: { requiresAuth: true, title: 'Choose your Currency' },
   },
   { path: '/sign-in', name: 'sign-in', component: () => import('@/views/SignInView.vue'), meta: { title: 'Sign in' } },
+  {
+    path: '/accounts/:id',
+    name: 'account',
+    component: () => import('@/views/AccountView.vue'),
+    props: true,
+    meta: { requiresAuth: true, needsCurrency: true, title: 'Account' },
+  },
   ...navItems.map(
     (item): RouteRecordRaw => ({
       path: item.to,
