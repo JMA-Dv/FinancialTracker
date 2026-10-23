@@ -10,6 +10,8 @@ const emit = defineEmits<{ action: [action: CategoryAction] }>()
 
 const categories = useCategoriesStore()
 const moveBlockedBecause = computed(() => moveObstacle(props.node, props.parent, categories.tree))
+const archiveType = computed<'archive' | 'unarchive'>(() => (props.node.isArchived ? 'unarchive' : 'archive'))
+const archiveLabel = computed(() => (props.node.isArchived ? 'Unarchive' : 'Archive'))
 </script>
 
 <template>
@@ -28,11 +30,8 @@ const moveBlockedBecause = computed(() => moveObstacle(props.node, props.parent,
       >
         Move
       </ElButton>
-      <ElButton link :aria-label="`Archive ${node.name}`" v-if="!node.isArchived" @click="emit('action', { type: 'archive', node })">
-        Archive
-      </ElButton>
-      <ElButton link :aria-label="`Unarchive ${node.name}`" v-else @click="emit('action', { type: 'unarchive', node })">
-        Unarchive
+      <ElButton link :aria-label="`${archiveLabel} ${node.name}`" @click="emit('action', { type: archiveType, node })">
+        {{ archiveLabel }}
       </ElButton>
     </span>
   </div>

@@ -1,6 +1,7 @@
 import { createPinia, setActivePinia } from 'pinia'
 import { beforeEach, describe, expect, it } from 'vitest'
 import { type FixtureCategory, groceries, salary, travel } from '@/testing/fixtures'
+import { vi } from 'vitest'
 import { fakeApi, json } from '@/testing/harness'
 import { useCategoriesStore } from './categories'
 
@@ -50,5 +51,24 @@ describe('Categories store', () => {
     await categories.create({ name: 'Groceries', kind: 'Expense' })
 
     expect(categories.selectable.map((category) => category.label)).toEqual(['Salary', 'Groceries', 'Groceries › Market'])
+  })
+
+  it('shows the answer to the last request when answers arrive out of order', async () => {
+    const answers = new Map<string, (response: Response) => void>()
+    vi.stubGlobal(
+      'fetch',
+      vi.fn((path: string) => new Promise<Response>((resolve) => answers.set(path, resolve))),
+    )
+    const categories = useCategoriesStore()
+
+    const withArchived = categories.setIncludeArchived(true)
+    const withoutArchived = categories.setIncludeArchived(false)
+    answers.get('/api/categories')?.(json(200, [salary]))
+    await withoutArchived
+    answers.get('/api/categories?includeArchived=true')?.(json(200, [salary, travel]))
+    await withArchived
+
+    expect(categories.tree.map((node) => node.name)).toEqual(['Salary'])
+    expect(categories.includeArchived).toBe(false)
   })
 })

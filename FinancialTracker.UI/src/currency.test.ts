@@ -4,8 +4,6 @@ import { fakeApi, json, pickOption, signedIn, visit } from './testing/harness'
 
 const withoutCurrency = { 'GET /api/user-settings': () => json(200, { email: 'ana@example.com', currency: null }) }
 
-const pickCurrency = pickOption
-
 async function save(page: DOMWrapper<HTMLElement>): Promise<void> {
   await page.get('button[type="submit"]').trigger('click')
   await flushPromises()
@@ -40,7 +38,7 @@ describe('Currency setup', () => {
     })
     const { page, navigate } = await visit('/accounts')
 
-    await pickCurrency(page, 'US Dollar')
+    await pickOption(page, 'US Dollar')
     await save(page)
 
     expect(fetchMock).toHaveBeenCalledWith(
@@ -74,7 +72,7 @@ describe('Currency setup', () => {
   ])('shows what the API says about %s and keeps the choice', async (_kind, refusal, shown) => {
     fakeApi({ ...withoutCurrency, 'PUT /api/user-settings/currency': () => refusal })
     const { page } = await visit('/accounts')
-    await pickCurrency(page, 'US Dollar')
+    await pickOption(page, 'US Dollar')
 
     await save(page)
 
@@ -101,7 +99,7 @@ describe('Settings', () => {
     expect(page.get('main').text()).toContain('only the default for new Accounts')
     expect(page.get('main').text()).toContain('nothing that already exists is converted')
 
-    await pickCurrency(page, 'Mexican Peso')
+    await pickOption(page, 'Mexican Peso')
     await save(page)
 
     expect(fetchMock).toHaveBeenCalledWith(
@@ -128,12 +126,12 @@ describe('Settings', () => {
         refuse ? json(400, { title: 'Unknown Currency', detail: 'Not a Currency.' }) : json(200, { email: 'ana@example.com', currency: 'MXN' }),
     })
     const { page } = await visit('/settings')
-    await pickCurrency(page, 'Mexican Peso')
+    await pickOption(page, 'Mexican Peso')
     await save(page)
     expect(page.get('[role="status"]').text()).toBe('Currency saved.')
 
     refuse = true
-    await pickCurrency(page, 'Euro')
+    await pickOption(page, 'Euro')
     await save(page)
 
     expect(page.get('[role="status"]').text()).toBe('')

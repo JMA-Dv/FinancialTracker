@@ -1,6 +1,6 @@
 import { flushPromises } from '@vue/test-utils'
 import { describe, expect, it } from 'vitest'
-import { type FixtureCategory, groceries, market, salary, travel } from './testing/fixtures'
+import { type FixtureCategory, flights, groceries, market, salary, travel } from './testing/fixtures'
 import { documentBody, fakeApi, json, pickOption, press, signedIn, visit } from './testing/harness'
 
 describe('Categories screen', () => {
@@ -111,7 +111,7 @@ describe('creating a Category', () => {
     await press(page, 'New category')
     const dialog = documentBody().get('[role="dialog"]')
     await dialog.get('input.el-input__inner').setValue('Gifts')
-    expect(dialog.get('button.is-disabled, button[disabled]').text()).toBe('Save')
+    expect(dialog.get('button[type="submit"]').attributes('disabled')).toBeDefined()
     await dialog.get('input[type="radio"][value="Income"]').setValue(true)
     await press(dialog, 'Save')
 
@@ -330,5 +330,45 @@ describe('moving a Category', () => {
 
     expect(dialog.get('[role="alert"]').text()).toContain('so moving it under another would make a third level.')
     expect(documentBody().find('[role="dialog"]').exists()).toBe(true)
+  })
+})
+
+describe('when the list cannot be refreshed after a change', () => {
+  it('keeps the list the User was looking at and says the refresh failed', async () => {
+    let refreshing = false
+    fakeApi({
+      ...signedIn,
+      'GET /api/categories': () =>
+        refreshing ? json(500, { title: 'Oops', detail: 'Database unavailable.' }) : json(200, [salary]),
+      'POST /api/categories/salary/archive': () => {
+        refreshing = true
+        return json(200, { id: 'salary', name: 'Salary', kind: 'Income', parentId: null, isArchived: true })
+      },
+    })
+    const { page } = await visit('/categories')
+
+    await press(page, 'Archive Salary')
+
+    expect(page.get('[role="alert"]').text()).toContain('Database unavailable.')
+    expect(page.text()).toContain('Salary')
+  })
+})
+
+describe('moving a child of an Archived Category', () => {
+  it('asks for a new place instead of showing the archived parent as the current choice', async () => {
+    fakeApi({
+      ...signedIn,
+      'GET /api/categories': () => json(200, [salary]),
+      'GET /api/categories?includeArchived=true': () => json(200, [salary, groceries, { ...travel, children: [flights] }]),
+    })
+    const { page } = await visit('/categories')
+    await page.get('[role="switch"]').trigger('click')
+    await flushPromises()
+
+    await press(page, 'Move Flights')
+    const dialog = documentBody().get('[role="dialog"]')
+
+    expect(dialog.get('.el-select__placeholder').text()).toBe('Choose a Category')
+    expect(dialog.get('button[type="submit"]').attributes('disabled')).toBeDefined()
   })
 })

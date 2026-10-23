@@ -54,40 +54,51 @@ export const useCategoriesStore = defineStore('categories', () => {
       ]),
   )
 
-  /** Fetches the tree again, with or without the Archived Categories. */
+  let latestRequest = 0
+
+  /** Fetches the tree again, with or without the Archived Categories. A failure keeps the tree already shown. */
   async function load(): Promise<void> {
+    const request = ++latestRequest
     status.value = 'loading'
     failure.value = ''
     try {
       const path = includeArchived.value ? '/api/categories?includeArchived=true' : '/api/categories'
-      tree.value = await api.get<CategoryNode[]>(path)
-      status.value = 'ready'
+      const loaded = await api.get<CategoryNode[]>(path)
+      // A slower, older answer must not replace a newer one.
+      if (request === latestRequest) {
+        tree.value = loaded
+        status.value = 'ready'
+      }
     } catch (error) {
-      status.value = 'failed'
-      failure.value = describeFailure(error)
+      if (request === latestRequest) {
+        status.value = 'failed'
+        failure.value = describeFailure(error)
+      }
     }
   }
 
-  /** Adds a Category, then refreshes the tree so every screen sees it. */
-  async function create(request: CreateCategoryRequest): Promise<void> {
-    await api.post('/api/categories', request)
+  /** Runs a change, then refreshes the tree so every screen sees it. */
+  async function mutate(change: () => Promise<unknown>): Promise<void> {
+    await change()
     await load()
   }
 
-  async function rename(id: string, name: string): Promise<void> {
-    await api.put(`/api/categories/${id}/name`, { name })
-    await load()
+  /** Adds a Category. */
+  function create(request: CreateCategoryRequest): Promise<void> {
+    return mutate(() => api.post('/api/categories', request))
+  }
+
+  function rename(id: string, name: string): Promise<void> {
+    return mutate(() => api.put(`/api/categories/${id}/name`, { name }))
   }
 
   /** Moves a Category under another top-level one, or to the top level when `parentId` is null. */
-  async function move(id: string, parentId: string | null): Promise<void> {
-    await api.put(`/api/categories/${id}/parent`, { parentId })
-    await load()
+  function move(id: string, parentId: string | null): Promise<void> {
+    return mutate(() => api.put(`/api/categories/${id}/parent`, { parentId }))
   }
 
-  async function setArchived(id: string, archived: boolean): Promise<void> {
-    await api.post(`/api/categories/${id}/${archived ? 'archive' : 'unarchive'}`)
-    await load()
+  function setArchived(id: string, archived: boolean): Promise<void> {
+    return mutate(() => api.post(`/api/categories/${id}/${archived ? 'archive' : 'unarchive'}`))
   }
 
   async function setIncludeArchived(value: boolean): Promise<void> {

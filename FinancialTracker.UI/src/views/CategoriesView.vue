@@ -14,6 +14,9 @@ const creating = ref(false)
 const renaming = ref<CategoryNode | null>(null)
 const moving = ref<{ node: CategoryNode; parent: CategoryNode | null } | null>(null)
 
+// A failed refresh keeps the tree already shown, and says so above it.
+const showLists = computed(() => categories.tree.length > 0 || categories.status === 'ready')
+
 const income = computed(() => categories.tree.filter((node) => node.kind === 'Income'))
 const expense = computed(() => categories.tree.filter((node) => node.kind === 'Expense'))
 
@@ -29,6 +32,10 @@ async function perform(action: CategoryAction): Promise<void> {
   }
 }
 
+function toggleArchived(value: string | number | boolean): void {
+  void categories.setIncludeArchived(value === true)
+}
+
 onMounted(() => categories.load())
 </script>
 
@@ -38,25 +45,34 @@ onMounted(() => categories.load())
 
     <div class="categories__toolbar">
       <ElButton type="primary" @click="creating = true">New category</ElButton>
-    <label class="categories__archived">
-      <ElSwitch :model-value="categories.includeArchived" @change="categories.setIncludeArchived(Boolean($event))" />
-      Show archived
-    </label>
+      <label class="categories__archived">
+        <ElSwitch :model-value="categories.includeArchived" @change="toggleArchived" />
+        Show archived
+      </label>
     </div>
 
-    <ElAlert v-if="archiving.error.value" type="error" show-icon :closable="false" :title="archiving.error.value" class="categories__alert" />
+    <ElAlert
+      v-if="archiving.error.value"
+      type="error"
+      show-icon
+      :closable="false"
+      :title="archiving.error.value"
+      class="categories__alert"
+    />
 
-    <p v-if="categories.status === 'idle' || (categories.status === 'loading' && categories.tree.length === 0)" role="status">
-      Loading Categories…
-    </p>
-    <template v-else-if="categories.status === 'failed'">
+    <div v-if="categories.status === 'failed'" class="categories__alert">
       <ElAlert type="error" show-icon :closable="false" title="Could not load your Categories" :description="categories.failure" />
       <ElButton class="categories__retry" @click="categories.load()">Try again</ElButton>
-    </template>
-    <template v-else>
+    </div>
+
+    <p v-if="categories.status === 'idle' || (categories.status === 'loading' && !showLists)" role="status">
+      Loading Categories…
+    </p>
+    <template v-else-if="showLists">
       <CategorySection kind="Income" :nodes="income" @action="perform" />
       <CategorySection kind="Expense" :nodes="expense" @action="perform" />
     </template>
+
     <CreateCategoryDialog v-if="creating" @close="creating = false" @saved="creating = false" />
     <MoveCategoryDialog v-if="moving" :node="moving.node" :parent="moving.parent" @close="moving = null" @saved="moving = null" />
     <RenameCategoryDialog v-if="renaming" :node="renaming" @close="renaming = null" @saved="renaming = null" />
