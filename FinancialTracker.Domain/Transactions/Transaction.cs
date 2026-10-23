@@ -1,6 +1,7 @@
 using FinancialTracker.Domain.Accounts;
 using FinancialTracker.Domain.Categories;
 using FinancialTracker.Domain.Common;
+using FinancialTracker.Domain.Payees;
 
 namespace FinancialTracker.Domain.Transactions;
 
@@ -10,7 +11,7 @@ public sealed class Transaction
     public const int MaxNoteLength = 500;
 
     private Transaction(
-        Guid id, Guid userId, Guid accountId, DateOnly date, TransactionDirection direction, decimal amount, Guid categoryId, string? note)
+        Guid id, Guid userId, Guid accountId, DateOnly date, TransactionDirection direction, decimal amount, Guid categoryId, Guid? payeeId, string? note)
     {
         Id = id;
         UserId = userId;
@@ -19,6 +20,7 @@ public sealed class Transaction
         Direction = direction;
         Amount = amount;
         CategoryId = categoryId;
+        PayeeId = payeeId;
         Note = note;
     }
 
@@ -38,6 +40,9 @@ public sealed class Transaction
 
     public Guid CategoryId { get; private set; }
 
+    /// <summary>Who the User paid or was paid by, if they said.</summary>
+    public Guid? PayeeId { get; private set; }
+
     public string? Note { get; private set; }
 
     /// <summary>The amount as it changes the Account's balance: negative for Out.</summary>
@@ -52,12 +57,13 @@ public sealed class Transaction
         TransactionDirection direction,
         decimal amount,
         Category category,
+        Payee? payee,
         string? note,
         DateOnly today)
     {
         EnsureValid(account, date, direction, amount, note, today);
         EnsureCategoryUsable(category);
-        return new Transaction(Guid.CreateVersion7(), account.UserId, account.Id, date, direction, amount, category.Id, note);
+        return new Transaction(Guid.CreateVersion7(), account.UserId, account.Id, date, direction, amount, category.Id, payee?.Id, note);
     }
 
     /// <summary>Replaces every field. Nothing changes unless all of it is valid.</summary>
@@ -72,6 +78,7 @@ public sealed class Transaction
         TransactionDirection direction,
         decimal amount,
         Category category,
+        Payee? payee,
         string? note,
         DateOnly today)
     {
@@ -98,6 +105,7 @@ public sealed class Transaction
         Direction = direction;
         Amount = amount;
         CategoryId = category.Id;
+        PayeeId = payee?.Id;
         Note = note;
     }
 

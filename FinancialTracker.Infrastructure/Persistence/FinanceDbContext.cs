@@ -1,6 +1,7 @@
 using FinancialTracker.Domain.Accounts;
 using FinancialTracker.Domain.Categories;
 using FinancialTracker.Domain.Money;
+using FinancialTracker.Domain.Payees;
 using FinancialTracker.Domain.Transactions;
 using FinancialTracker.Domain.Transfers;
 using FinancialTracker.Infrastructure.Identity;
@@ -15,6 +16,8 @@ public class FinanceDbContext(DbContextOptions<FinanceDbContext> options)
     public DbSet<Account> Accounts => Set<Account>();
 
     public DbSet<Category> Categories => Set<Category>();
+
+    public DbSet<Payee> Payees => Set<Payee>();
 
     public DbSet<Transaction> Transactions => Set<Transaction>();
 
@@ -58,6 +61,16 @@ public class FinanceDbContext(DbContextOptions<FinanceDbContext> options)
             category.HasOne<Category>().WithMany().HasForeignKey(c => c.ParentId).OnDelete(DeleteBehavior.Restrict);
         });
 
+        builder.Entity<Payee>(payee =>
+        {
+            payee.ToTable("Payees");
+            payee.HasKey(p => p.Id);
+            payee.Property(p => p.Id).ValueGeneratedNever();
+            payee.HasOne<User>().WithMany().HasForeignKey(p => p.UserId).OnDelete(DeleteBehavior.Cascade);
+            payee.HasIndex(p => p.UserId);
+            payee.Property(p => p.Name).HasMaxLength(Payee.MaxNameLength);
+        });
+
         builder.Entity<Transaction>(transaction =>
         {
             transaction.ToTable("Transactions");
@@ -67,7 +80,10 @@ public class FinanceDbContext(DbContextOptions<FinanceDbContext> options)
             // Restrict: money that moved through an Account or Category is never deleted along with it.
             transaction.HasOne<Account>().WithMany().HasForeignKey(t => t.AccountId).OnDelete(DeleteBehavior.Restrict);
             transaction.HasOne<Category>().WithMany().HasForeignKey(t => t.CategoryId).OnDelete(DeleteBehavior.Restrict);
+            // Restrict: a Payee is renamed, never deleted out from under its Transactions.
+            transaction.HasOne<Payee>().WithMany().HasForeignKey(t => t.PayeeId).OnDelete(DeleteBehavior.Restrict);
             transaction.HasIndex(t => t.UserId);
+            transaction.HasIndex(t => t.PayeeId);
             transaction.HasIndex(t => t.AccountId);
             transaction.Property(t => t.Direction).HasConversion<string>().HasMaxLength(3);
             transaction.Property(t => t.Amount).HasPrecision(19, 4);

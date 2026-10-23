@@ -108,6 +108,26 @@ namespace FinancialTracker.Infrastructure.Persistence.Migrations
                     b.ToTable("Categories", (string)null);
                 });
 
+            modelBuilder.Entity("FinancialTracker.Domain.Payees.Payee", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("UserId");
+
+                    b.ToTable("Payees", (string)null);
+                });
+
             modelBuilder.Entity("FinancialTracker.Domain.Transactions.Transaction", b =>
                 {
                     b.Property<Guid>("Id")
@@ -135,6 +155,9 @@ namespace FinancialTracker.Infrastructure.Persistence.Migrations
                         .HasMaxLength(500)
                         .HasColumnType("character varying(500)");
 
+                    b.Property<Guid?>("PayeeId")
+                        .HasColumnType("uuid");
+
                     b.Property<Guid>("UserId")
                         .HasColumnType("uuid");
 
@@ -143,6 +166,8 @@ namespace FinancialTracker.Infrastructure.Persistence.Migrations
                     b.HasIndex("AccountId");
 
                     b.HasIndex("CategoryId");
+
+                    b.HasIndex("PayeeId");
 
                     b.HasIndex("UserId");
 
@@ -355,6 +380,15 @@ namespace FinancialTracker.Infrastructure.Persistence.Migrations
                         .IsRequired();
                 });
 
+            modelBuilder.Entity("FinancialTracker.Domain.Payees.Payee", b =>
+                {
+                    b.HasOne("FinancialTracker.Infrastructure.Identity.User", null)
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
             modelBuilder.Entity("FinancialTracker.Domain.Transactions.Transaction", b =>
                 {
                     b.HasOne("FinancialTracker.Domain.Accounts.Account", null)
@@ -368,6 +402,11 @@ namespace FinancialTracker.Infrastructure.Persistence.Migrations
                         .HasForeignKey("CategoryId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
+
+                    b.HasOne("FinancialTracker.Domain.Payees.Payee", null)
+                        .WithMany()
+                        .HasForeignKey("PayeeId")
+                        .OnDelete(DeleteBehavior.Restrict);
 
                     b.HasOne("FinancialTracker.Infrastructure.Identity.User", null)
                         .WithMany()

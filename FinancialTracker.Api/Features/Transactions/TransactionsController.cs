@@ -1,6 +1,7 @@
 using FinancialTracker.Api.Features.Auth;
 using FinancialTracker.Application.Transactions;
 using FinancialTracker.Domain.Transactions;
+using FinancialTracker.Domain.Payees;
 using FluentValidation;
 using Microsoft.AspNetCore.Mvc;
 
@@ -18,10 +19,11 @@ public class TransactionsController(
 {
     /// <summary>The User's Transactions, newest first. Every filter is optional and they combine.</summary>
     /// <param name="from">The earliest date to include.</param>
+    /// <param name="payeeId">Only Transactions with this Payee.</param>
     /// <param name="to">The latest date to include.</param>
     [HttpGet]
-    public async Task<IReadOnlyList<TransactionResponse>> List(Guid? accountId, Guid? categoryId, DateOnly? from, DateOnly? to) =>
-        (await listTransactions.ExecuteAsync(User.Id(), new TransactionFilter(accountId, categoryId, from, to)))
+    public async Task<IReadOnlyList<TransactionResponse>> List(Guid? accountId, Guid? categoryId, Guid? payeeId, DateOnly? from, DateOnly? to) =>
+        (await listTransactions.ExecuteAsync(User.Id(), new TransactionFilter(accountId, categoryId, payeeId, from, to)))
             .Select(TransactionResponse.Of)
             .ToList();
 
@@ -83,12 +85,14 @@ internal sealed class SaveTransactionRequestValidator : AbstractValidator<SaveTr
         RuleFor(r => r.Direction).NotNull().IsInEnum();
         RuleFor(r => r.Amount).NotNull();
         RuleFor(r => r.CategoryId).NotNull();
+        RuleFor(r => r.PayeeName).MaximumLength(Payee.MaxNameLength);
     }
 }
 
 /// <param name="Amount">Positive, in the Account's Currency. The direction says which way it moves.</param>
+/// <param name="PayeeName">Who was paid or paid the User. An unknown name creates the Payee; leave it out for none.</param>
 public sealed record SaveTransactionRequest(
-    Guid? AccountId, DateOnly? Date, TransactionDirection? Direction, decimal? Amount, Guid? CategoryId, string? Note)
+    Guid? AccountId, DateOnly? Date, TransactionDirection? Direction, decimal? Amount, Guid? CategoryId, string? PayeeName, string? Note)
 {
     public TransactionDetails ToDetails() =>
         new(
@@ -97,11 +101,12 @@ public sealed record SaveTransactionRequest(
             Direction ?? throw new InvalidOperationException("Direction is checked by the validator."),
             Amount ?? throw new InvalidOperationException("Amount is checked by the validator."),
             CategoryId ?? throw new InvalidOperationException("CategoryId is checked by the validator."),
+            PayeeName,
             Note);
 }
 
 public sealed record TransactionResponse(
-    Guid Id, Guid AccountId, DateOnly Date, TransactionDirection Direction, decimal Amount, Guid CategoryId, string? Note)
+    Guid Id, Guid AccountId, DateOnly Date, TransactionDirection Direction, decimal Amount, Guid CategoryId, Guid? PayeeId, string? Note)
 {
     public static TransactionResponse Of(Transaction transaction) =>
         new(
@@ -111,5 +116,6 @@ public sealed record TransactionResponse(
             transaction.Direction,
             transaction.Amount,
             transaction.CategoryId,
+            transaction.PayeeId,
             transaction.Note);
 }

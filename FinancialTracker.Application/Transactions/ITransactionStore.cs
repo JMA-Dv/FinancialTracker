@@ -17,16 +17,22 @@ public interface ITransactionStore
 
     /// <summary>The User's Transactions that match the filter, newest first.</summary>
     Task<IReadOnlyList<Transaction>> SearchAsync(Guid userId, TransactionFilter filter);
+
+    /// <summary>
+    /// For each Payee, the Category of the User's most recent Transaction with them. A Payee with no Transactions is left out.
+    /// </summary>
+    /// <param name="payeeId">Only this Payee, or null for all of them.</param>
+    Task<IReadOnlyDictionary<Guid, Guid>> LatestCategoriesByPayeeAsync(Guid userId, Guid? payeeId);
 }
 
 /// <summary>Narrows a list of Transactions. A null field doesn't narrow.</summary>
 /// <param name="From">The earliest date to include.</param>
 /// <param name="To">The latest date to include.</param>
-public sealed record TransactionFilter(Guid? AccountId, Guid? CategoryId, DateOnly? From, DateOnly? To)
+public sealed record TransactionFilter(Guid? AccountId, Guid? CategoryId, Guid? PayeeId, DateOnly? From, DateOnly? To)
 {
-    public static TransactionFilter All { get; } = new(null, null, null, null);
+    public static TransactionFilter All { get; } = new(null, null, null, null, null);
 
-    public static TransactionFilter ForAccount(Guid accountId) => new(accountId, null, null, null);
+    public static TransactionFilter ForAccount(Guid accountId) => new(accountId, null, null, null, null);
 }
 
 public static class TransactionStoreExtensions

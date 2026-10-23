@@ -64,5 +64,5 @@ public sealed class TransactionBalanceTests
 
     private static Transaction Record(Account account, DateOnly date, TransactionDirection direction, decimal amount) =>
         Transaction.Create(
-            account, date, direction, amount, Category.Create(account.UserId, "Dining", CategoryKind.Expense, parent: null), note: null, Today);
+            account, date, direction, amount, Category.Create(account.UserId, "Dining", CategoryKind.Expense, parent: null), payee: null, note: null, Today);
 }
