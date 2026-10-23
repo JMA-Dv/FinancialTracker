@@ -1,6 +1,7 @@
 using FinancialTracker.Application.Accounts;
 using FinancialTracker.Application.Categories;
 using FinancialTracker.Application.Payees;
+using FinancialTracker.Application.Reports;
 using FinancialTracker.Application.Transactions;
 using FinancialTracker.Application.Transfers;
 using FinancialTracker.Application.UserSettings;
@@ -23,6 +24,8 @@ public static class DependencyInjection
         services.AddScoped<GetAccount>();
         services.AddScoped<RenameAccount>();
         services.AddScoped<ChangeAccountCurrency>();
+        services.AddScoped<CloseAccount>();
+        services.AddScoped<ReopenAccount>();
         services.AddScoped<CreateBalanceAdjustment>();
         services.AddScoped<GetBalanceAdjustment>();
         services.AddScoped<ListBalanceAdjustments>();
@@ -40,6 +43,11 @@ public static class DependencyInjection
         services.AddScoped<ListTransactions>();
         services.AddScoped<EditTransaction>();
         services.AddScoped<DeleteTransaction>();
+        services.AddScoped<ReportEntries>();
+        services.AddScoped<GetNetWorth>();
+        services.AddScoped<GetIncomeAndSpending>();
+        services.AddScoped<GetCategoryBreakdown>();
+        services.AddScoped<GetPayeeSpending>();
         services.AddScoped<ListPayees>();
         services.AddScoped<RenamePayee>();
         services.AddScoped<CreateTransfer>();

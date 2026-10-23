@@ -13,6 +13,7 @@ public sealed record AccountSummary(
     Currency Currency,
     decimal Balance,
     bool IsLiability,
+    bool IsClosed,
     OpeningBalance? OpeningBalance)
 {
     public static AccountSummary Of(
@@ -24,5 +25,6 @@ public sealed record AccountSummary(
             account.Currency,
             account.BalanceOn(today, transactions, transfers),
             account.IsLiability,
+            account.IsClosed,
             account.OpeningBalance is { } opening ? new OpeningBalance(opening.Balance, opening.Date) : null);
 }

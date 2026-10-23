@@ -35,6 +35,9 @@ public sealed class Account
     /// <summary>A Liability Account's balance is normally money the User owes. Every other Account is an asset.</summary>
     public bool IsLiability => Kind is AccountKind.CreditCard;
 
+    /// <summary>A Closed Account holds a zero balance, accepts nothing new, and keeps its history.</summary>
+    public bool IsClosed { get; private set; }
+
     public IReadOnlyCollection<BalanceAdjustment> BalanceAdjustments => balanceAdjustments;
 
     /// <summary>The earliest Balance Adjustment, or null if the Account starts at zero.</summary>
@@ -64,6 +67,37 @@ public sealed class Account
 
     /// <exception cref="DomainValidationException">The name is blank or too long.</exception>
     public void Rename(string name) => Name = ValidName(name);
+
+    /// <summary>
+    /// Closes the Account, which is only allowed at a zero balance so money never silently vanishes from net worth.
+    /// Closing a Closed Account changes nothing.
+    /// </summary>
+    /// <param name="currentBalance">What the Account holds today.</param>
+    /// <exception cref="DomainConflictException">The balance isn't zero.</exception>
+    public void Close(decimal currentBalance)
+    {
+        if (currentBalance != 0m)
+        {
+            throw new DomainConflictException(
+                "Account balance not zero",
+                $"{Name} holds {currentBalance} {Currency.Code}. Move it to another Account or settle it before closing.");
+        }
+
+        IsClosed = true;
+    }
+
+    /// <summary>Opens a Closed Account again so money can be recorded against it. Reopening an open Account changes nothing.</summary>
+    public void Reopen() => IsClosed = false;
+
+    /// <summary>Guards everything that would add to, change or remove money on this Account.</summary>
+    /// <exception cref="DomainConflictException">The Account is closed.</exception>
+    public void EnsureOpen()
+    {
+        if (IsClosed)
+        {
+            throw new DomainConflictException("Account closed", $"{Name} is closed. Reopen it to record anything against it.");
+        }
+    }
 
     /// <summary>
     /// Changes the Currency the Account's amounts are in. Nothing is converted (ADR 0003), so once money has moved
@@ -101,9 +135,10 @@ public sealed class Account
     /// <param name="balance">The signed balance at the end of the date: negative is money owed.</param>
     /// <param name="today">Today's date, which a Balance Adjustment can't be after.</param>
     /// <exception cref="DomainValidationException">The date is in the future, or the balance is more precise than the Currency.</exception>
-    /// <exception cref="DomainConflictException">The Account already has a Balance Adjustment for that date.</exception>
+    /// <exception cref="DomainConflictException">The Account is closed, or already has a Balance Adjustment for that date.</exception>
     public BalanceAdjustment AdjustBalance(DateOnly date, decimal balance, DateOnly today)
     {
+        EnsureOpen();
         EnsureValidMoney(balance, date, today);
         EnsureDateFree(date, exceptId: null);
 
@@ -115,10 +150,11 @@ public sealed class Account
     /// <summary>Replaces the date and stated balance of one of the Account's Balance Adjustments. Nothing changes unless all of it is valid.</summary>
     /// <exception cref="BalanceAdjustmentNotFoundException">The Account has no such Balance Adjustment.</exception>
     /// <exception cref="DomainValidationException">The date is in the future, or the balance is more precise than the Currency.</exception>
-    /// <exception cref="DomainConflictException">Another Balance Adjustment already states that date.</exception>
+    /// <exception cref="DomainConflictException">The Account is closed, or another Balance Adjustment already states that date.</exception>
     public BalanceAdjustment EditBalanceAdjustment(Guid balanceAdjustmentId, DateOnly date, decimal balance, DateOnly today)
     {
         var adjustment = GetBalanceAdjustment(balanceAdjustmentId);
+        EnsureOpen();
         EnsureValidMoney(balance, date, today);
         EnsureDateFree(date, exceptId: adjustment.Id);
 
@@ -128,8 +164,13 @@ public sealed class Account
 
     /// <summary>Removes a Balance Adjustment. With none left, the Account starts at zero again.</summary>
     /// <exception cref="BalanceAdjustmentNotFoundException">The Account has no such Balance Adjustment.</exception>
-    public void RemoveBalanceAdjustment(Guid balanceAdjustmentId) =>
-        balanceAdjustments.Remove(GetBalanceAdjustment(balanceAdjustmentId));
+    /// <exception cref="DomainConflictException">The Account is closed.</exception>
+    public void RemoveBalanceAdjustment(Guid balanceAdjustmentId)
+    {
+        var adjustment = GetBalanceAdjustment(balanceAdjustmentId);
+        EnsureOpen();
+        balanceAdjustments.Remove(adjustment);
+    }
 
     /// <summary>
     /// The Account's balance at the end of the date: the latest Balance Adjustment on or before it, or zero
