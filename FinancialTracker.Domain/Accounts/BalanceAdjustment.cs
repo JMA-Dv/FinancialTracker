@@ -19,4 +19,10 @@ public sealed class BalanceAdjustment
 
     /// <summary>The Account's balance at the end of the date, in the Account's Currency. Signed.</summary>
     public decimal Balance { get; private set; }
+
+    internal void Restate(DateOnly date, decimal balance)
+    {
+        Date = date;
+        Balance = balance;
+    }
 }
