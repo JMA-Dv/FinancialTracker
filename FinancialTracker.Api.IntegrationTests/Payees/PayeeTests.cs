@@ -224,6 +224,22 @@ public sealed class PayeeTests(ApiFactory api)
     }
 
     [Fact]
+    public async Task Naming_the_same_new_Payee_on_many_Transactions_at_once_still_makes_one_Payee()
+    {
+        var user = await api.CreateSignedInUserWithCurrencyAsync("USD");
+        var (account, dining, _) = await SetUpAsync(user);
+
+        var responses = await Task.WhenAll(Enumerable.Range(0, 8).Select(i =>
+            user.Client.PostAsJsonAsync(TransactionsEndpoint, New(account, dining, payeeName: i % 2 is 0 ? "Bakery" : "BAKERY"))));
+
+        // A request that loses the race may be told to retry, but never fails and never makes a second Payee.
+        Assert.All(responses, response => Assert.True(
+            response.StatusCode is HttpStatusCode.Created or HttpStatusCode.Conflict, $"got {(int)response.StatusCode}"));
+        Assert.Contains(responses, response => response.StatusCode is HttpStatusCode.Created);
+        Assert.Single(await ListPayeesAsync(user));
+    }
+
+    [Fact]
     public async Task Payees_need_a_signed_in_User()
     {
         var anonymous = api.CreateAnonymousClient();

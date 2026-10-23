@@ -1,6 +1,9 @@
 using FinancialTracker.Application.Payees;
+using FinancialTracker.Domain.Common;
 using FinancialTracker.Domain.Payees;
+using FinancialTracker.Infrastructure.Persistence.Migrations;
 using Microsoft.EntityFrameworkCore;
+using Npgsql;
 
 namespace FinancialTracker.Infrastructure.Persistence;
 
@@ -9,7 +12,7 @@ public sealed class PayeeStore(FinanceDbContext dbContext) : IPayeeStore
     public async Task AddAsync(Payee payee)
     {
         dbContext.Payees.Add(payee);
-        await dbContext.SaveChangesAsync();
+        await SaveChangesAsync();
     }
 
     public Task<Payee?> FindAsync(Guid userId, Guid payeeId) =>
@@ -30,5 +33,18 @@ public sealed class PayeeStore(FinanceDbContext dbContext) : IPayeeStore
         return dbContext.Payees.AnyAsync(payee => payee.UserId == userId && payee.Id != exceptId && payee.Name.ToLower() == lowered);
     }
 
-    public Task SaveChangesAsync() => dbContext.SaveChangesAsync();
+    /// <exception cref="DomainConflictException">Another request gave a Payee the same name, whatever its case, at the same time.</exception>
+    public async Task SaveChangesAsync()
+    {
+        try
+        {
+            await dbContext.SaveChangesAsync();
+        }
+        catch (DbUpdateException ex) when (ex.InnerException is PostgresException { SqlState: PostgresErrorCodes.UniqueViolation } violation
+            && violation.ConstraintName == AddPayeeNameUniqueness.PayeeNameIndex)
+        {
+            // The name check ran before the other request saved. The caller can retry and will find the Payee.
+            throw new DomainConflictException("Payee name taken", "Another request just used that Payee name. Try again.");
+        }
+    }
 }
