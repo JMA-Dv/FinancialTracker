@@ -209,3 +209,54 @@ export const fromOldSavings: FixtureTransfer = {
   receivedAmount: 5,
   note: null,
 }
+
+/** A Category in `GET /api/reports/categories`. */
+export interface FixtureCategoryTotal {
+  id: string
+  name: string
+  kind: string
+  isArchived: boolean
+  total: number
+  ownAmount: number
+  children: FixtureCategoryTotal[]
+}
+
+export const salaryTotal: FixtureCategoryTotal = {
+  id: 'salary',
+  name: 'Salary',
+  kind: 'Income',
+  isArchived: false,
+  total: 2000,
+  ownAmount: 2000,
+  children: [],
+}
+
+export const marketTotal: FixtureCategoryTotal = {
+  id: 'market',
+  name: 'Market',
+  kind: 'Expense',
+  isArchived: false,
+  total: 200,
+  ownAmount: 200,
+  children: [],
+}
+
+export const groceriesTotal: FixtureCategoryTotal = {
+  id: 'groceries',
+  name: 'Groceries',
+  kind: 'Expense',
+  isArchived: false,
+  total: 300,
+  ownAmount: 100,
+  children: [marketTotal],
+}
+
+export const travelTotal: FixtureCategoryTotal = {
+  id: 'travel',
+  name: 'Travel',
+  kind: 'Expense',
+  isArchived: true,
+  total: 150.25,
+  ownAmount: 150.25,
+  children: [],
+}

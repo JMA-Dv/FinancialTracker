@@ -126,6 +126,15 @@ export function dialog(): FoundElement {
   return documentBody().get('[role="dialog"]')
 }
 
+/** The element inside `scope` that `selector` finds, narrowed to the elements whose text contains `text`. */
+export function containing(scope: Scope, selector: string, text: string): DOMWrapper<Element> {
+  const found = Array.from(scope.element.querySelectorAll(selector)).find((candidate) => candidate.textContent?.includes(text))
+  if (found === undefined) {
+    throw new Error(`No ${selector} contains "${text}"`)
+  }
+  return new DOMWrapper(found)
+}
+
 /** The open confirmation box, wherever Element Plus put it. */
 export function confirmationBox(): FoundElement {
   return documentBody().get('.el-message-box')
