@@ -141,13 +141,36 @@ describe('Settings', () => {
     const { page } = await visit('/settings')
     await pickCurrency(page, 'Mexican Peso')
     await save(page)
-    expect(page.find('[role="status"]').exists()).toBe(true)
+    expect(page.get('[role="status"]').text()).toBe('Currency saved.')
 
     refuse = true
     await pickCurrency(page, 'Euro')
     await save(page)
 
-    expect(page.find('[role="status"]').exists()).toBe(false)
+    expect(page.get('[role="status"]').text()).toBe('')
     expect(page.get('[role="alert"]').text()).toContain('Not a Currency.')
+  })
+
+  it('still asks for a Currency when the session only loads on retry', async () => {
+    let healthy = false
+    fakeApi({
+      'GET /api/user-settings': () =>
+        healthy ? json(200, { email: 'ana@example.com', currency: null }) : new Response('Bad gateway', { status: 502 }),
+    })
+    const { page } = await visit('/accounts')
+
+    healthy = true
+    await page.get('button').trigger('click')
+    await flushPromises()
+
+    expect(page.get('main h1').text()).toBe('Choose your Currency')
+  })
+
+  it('shows the current Currency when a User who has one opens the setup screen', async () => {
+    fakeApi(signedIn)
+
+    const { page } = await visit('/setup/currency')
+
+    expect(page.get('.el-select__placeholder').text()).toBe('USD – US Dollar')
   })
 })

@@ -2,7 +2,6 @@
 import { ElAlert, ElButton } from 'element-plus'
 import { useRoute, useRouter } from 'vue-router'
 import AppShell from '@/components/AppShell.vue'
-import { signInLocation } from '@/router'
 import { useSessionStore } from '@/stores/session'
 
 const route = useRoute()
@@ -11,9 +10,8 @@ const session = useSessionStore()
 
 async function retry(): Promise<void> {
   await session.load()
-  if (session.status === 'signedOut') {
-    await router.replace(signInLocation(route.fullPath))
-  }
+  // Run the guards again now that the session is known: they decide on sign-in and on a missing Currency.
+  await router.replace({ path: route.fullPath, force: true })
 }
 </script>
 

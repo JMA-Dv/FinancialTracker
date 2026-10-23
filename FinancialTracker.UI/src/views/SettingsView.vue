@@ -15,7 +15,7 @@ const session = useSessionStore()
       This is only the default for new Accounts. Each Account keeps the Currency it was opened with, and nothing that
       already exists is converted.
     </p>
-    <CurrencyForm :current="session.settings?.currency ?? null" />
+    <CurrencyForm />
   </section>
 </template>
 

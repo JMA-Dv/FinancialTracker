@@ -15,7 +15,7 @@ async function continueToDestination(): Promise<void> {
   <section class="setup">
     <h1>Choose your Currency</h1>
     <p>This is the Currency offered when you open a new Account. Each Account keeps its own, and nothing is converted.</p>
-    <CurrencyForm :current="null" @saved="continueToDestination" />
+    <CurrencyForm @saved="continueToDestination" />
   </section>
 </template>
 
