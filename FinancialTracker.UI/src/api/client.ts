@@ -34,6 +34,14 @@ interface ProblemBody {
   errors?: Record<string, string[]>
 }
 
+/** What to tell the User about a failed call: the API's own words, field by field when it gave them. */
+export function describeFailure(error: unknown): string {
+  if (error instanceof ValidationError) {
+    return Object.values(error.errors).flat().join(' ')
+  }
+  return error instanceof ApiClientError ? error.message : 'Something went wrong.'
+}
+
 let unauthorizedHandler: () => void = () => {}
 
 /** Registers who clears the session when any call answers 401. */
@@ -87,4 +95,5 @@ async function send<T>(method: string, path: string, body?: unknown): Promise<T>
 export const api = {
   get: <T>(path: string): Promise<T> => send<T>('GET', path),
   post: <T = void>(path: string, body?: unknown): Promise<T> => send<T>('POST', path, body),
+  put: <T = void>(path: string, body?: unknown): Promise<T> => send<T>('PUT', path, body),
 }

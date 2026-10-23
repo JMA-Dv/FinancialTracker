@@ -6,6 +6,8 @@ declare module 'vue-router' {
   interface RouteMeta {
     /** Routes without this are reachable while signed out. */
     requiresAuth?: boolean
+    /** Ledger screens: a User with no Currency is sent to choose one first. */
+    needsCurrency?: boolean
     title?: string
   }
 }
@@ -31,13 +33,25 @@ export function signInLocation(returnUrl: string): RouteLocationRaw {
 }
 
 const routes: RouteRecordRaw[] = [
+  {
+    path: '/settings',
+    name: 'settings',
+    component: () => import('@/views/SettingsView.vue'),
+    meta: { requiresAuth: true, title: 'Settings' },
+  },
+  {
+    path: '/setup/currency',
+    name: 'currency-setup',
+    component: () => import('@/views/CurrencySetupView.vue'),
+    meta: { requiresAuth: true, title: 'Choose your Currency' },
+  },
   { path: '/sign-in', name: 'sign-in', component: () => import('@/views/SignInView.vue'), meta: { title: 'Sign in' } },
   ...navItems.map(
     (item): RouteRecordRaw => ({
       path: item.to,
       name: item.label.toLowerCase(),
       component: () => import('@/views/ComingSoonView.vue'),
-      meta: { requiresAuth: true, title: item.label },
+      meta: { requiresAuth: true, needsCurrency: true, title: item.label },
     }),
   ),
   // Requires auth so a signed-out visitor is asked to sign in before learning which paths exist.
@@ -62,6 +76,10 @@ export function createAppRouter(history: RouterHistory, pinia: Pinia): Router {
     }
     if (session.status === 'signedOut') {
       return signInLocation(to.fullPath)
+    }
+    // A failed session load leaves settings unknown; that is the retry screen's job, not a missing Currency.
+    if (to.meta.needsCurrency === true && session.settings?.currency === null) {
+      return { name: 'currency-setup', query: { returnUrl: to.fullPath } }
     }
     return true
   })

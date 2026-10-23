@@ -35,6 +35,11 @@ export const useSessionStore = defineStore('session', () => {
     }
   }
 
+  /** Sets the Currency offered for new Accounts; the API answers with the settings as they now stand. */
+  async function setCurrency(code: string): Promise<void> {
+    settings.value = await api.put<UserSettings>('/api/user-settings/currency', { currency: code })
+  }
+
   /** Ends the session on the API, then forgets the User here. */
   async function signOut(): Promise<void> {
     await api.post('/api/auth/sign-out')
@@ -47,5 +52,5 @@ export const useSessionStore = defineStore('session', () => {
     status.value = 'signedOut'
   }
 
-  return { status, settings, failure, isSignedIn, load, signOut, clear }
+  return { status, settings, failure, isSignedIn, load, setCurrency, signOut, clear }
 })

@@ -39,6 +39,7 @@ async function signOut(): Promise<void> {
         </RouterLink>
       </nav>
       <span class="shell__user">{{ session.settings?.email }}</span>
+      <RouterLink to="/settings" class="shell__link">Settings</RouterLink>
       <ElButton @click="signOut">Sign out</ElButton>
     </header>
     <ElAlert v-if="signOutError" type="error" show-icon :closable="false" :title="`Could not sign out. ${signOutError}`" />
