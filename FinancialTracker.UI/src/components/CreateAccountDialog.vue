@@ -3,7 +3,8 @@ import { ElFormItem, ElInput, ElOption, ElSelect } from 'element-plus'
 import { computed, ref } from 'vue'
 import { accountKinds } from '@/accountKinds'
 import { useSubmit } from '@/composables/useSubmit'
-import { minorUnits } from '@/money'
+import { amountProblem } from '@/money'
+import { todayUtc } from '@/dates'
 import { useAccountsStore, type AccountKind, type CreateAccountRequest } from '@/stores/accounts'
 import { useSessionStore } from '@/stores/session'
 import CurrencySelect from './CurrencySelect.vue'
@@ -14,8 +15,7 @@ const emit = defineEmits<{ close: []; saved: [] }>()
 const accounts = useAccountsStore()
 const session = useSessionStore()
 
-// Date-only, in UTC, like the API's "not after today" rule.
-const today = new Date().toISOString().slice(0, 10)
+const today = todayUtc()
 
 const name = ref('')
 const kind = ref<AccountKind>()
@@ -26,16 +26,11 @@ const date = ref(today)
 const isCreditCard = computed(() => kind.value === 'CreditCard')
 const amountLabel = computed(() => (isCreditCard.value ? 'Amount owed' : 'Opening balance'))
 
-// Plain digits with an optional decimal part. Anything else (a comma, an exponent) is refused rather than
-// guessed at, because a number field would quietly read it as empty and start the Account at zero.
-const AMOUNT = /^-?\d+(\.\d+)?$/
 const AMOUNT_OWED = /^\d+(\.\d+)?$/
 
 const amountTrimmed = computed(() => amountText.value.trim())
 const hasAmount = computed(() => amountTrimmed.value !== '')
-const allowedDecimals = computed(() => (currency.value === '' ? 2 : minorUnits(currency.value)))
 
-// The API stays the authority; these hints only save a round trip.
 const amountError = computed(() => {
   if (!hasAmount.value) {
     return ''
@@ -43,11 +38,7 @@ const amountError = computed(() => {
   if (isCreditCard.value && !AMOUNT_OWED.test(amountTrimmed.value)) {
     return 'Enter the amount owed as a positive number.'
   }
-  if (!AMOUNT.test(amountTrimmed.value)) {
-    return 'Enter a number such as 1250.50.'
-  }
-  const decimals = amountTrimmed.value.split('.')[1]?.length ?? 0
-  return decimals > allowedDecimals.value ? `${currency.value} has ${allowedDecimals.value} decimal places.` : ''
+  return amountProblem(amountTrimmed.value, currency.value)
 })
 
 const dateError = computed(() => {

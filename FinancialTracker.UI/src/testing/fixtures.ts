@@ -79,3 +79,20 @@ export const oldSavings: FixtureAccount = {
   isClosed: true,
   openingBalance: null,
 }
+
+/** An entry of `GET /api/accounts/{id}/history`; `kind` is a string because the test types it loosely. */
+export interface FixtureHistoryEntry {
+  kind: string
+  id: string
+  date: string
+  amount: number
+  statedBalance: number | null
+}
+
+/** Newest first, as the API returns them. */
+export const checkingHistory: FixtureHistoryEntry[] = [
+  { kind: 'Transaction', id: 'rent', date: '2026-10-05', amount: -400, statedBalance: null },
+  { kind: 'BalanceAdjustment', id: 'recount', date: '2026-10-01', amount: 20, statedBalance: 90 },
+  { kind: 'Transfer', id: 'to-savings', date: '2026-09-20', amount: 50, statedBalance: null },
+  { kind: 'BalanceAdjustment', id: 'opening', date: '2026-09-01', amount: 70, statedBalance: 70 },
+]
