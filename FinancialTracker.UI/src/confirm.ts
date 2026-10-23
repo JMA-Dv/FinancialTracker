@@ -9,8 +9,11 @@ export async function confirmAction(title: string, message: string, confirmText:
       type: 'warning',
     })
     return true
-  } catch {
+  } catch (outcome) {
     // Element Plus rejects with 'cancel' or 'close' when the User declines; that is an answer, not a failure.
-    return false
+    if (outcome === 'cancel' || outcome === 'close') {
+      return false
+    }
+    throw outcome
   }
 }

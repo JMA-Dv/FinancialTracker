@@ -33,18 +33,13 @@ export const useAccountsStore = defineStore('accounts', () => {
     failure,
     items: accounts,
     load,
+    mutate,
   } = useLoadedList(() =>
     api.get<Account[]>(includeClosed.value ? '/api/accounts?includeClosed=true' : '/api/accounts'),
   )
 
   /** The Accounts that accept new money, for pickers in later forms. */
   const open = computed<Account[]>(() => accounts.value.filter((account) => !account.isClosed))
-
-  /** Runs a change, then refreshes the list so every screen sees it. */
-  async function mutate(change: () => Promise<unknown>): Promise<void> {
-    await change()
-    await load()
-  }
 
   function create(request: CreateAccountRequest): Promise<void> {
     return mutate(() => api.post('/api/accounts', request))

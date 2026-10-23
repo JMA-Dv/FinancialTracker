@@ -39,6 +39,7 @@ describe('Accounts screen', () => {
 
     expect(fetchMock).toHaveBeenCalledWith('/api/accounts?includeClosed=true', expect.anything())
     const closed = page.findAll('li').find((row) => row.text().includes('Old savings'))
+    expect(closed).toBeDefined()
     expect(closed?.text()).toContain('Closed')
 
     await page.get('[role="switch"]').trigger('click')
@@ -327,7 +328,7 @@ describe('closing and reopening an Account', () => {
 
     expect(page.get('[role="alert"]').text()).toContain('Everyday still holds 1,250.50 USD. Move or spend it first.')
     expect(page.get('section[aria-labelledby="own-heading"]').text()).toContain('Everyday')
-    expect(page.text()).not.toContain('Closed')
+    expect(page.find('.el-tag').exists()).toBe(false)
   })
 
   it('reopens a Closed Account once confirmed', async () => {
@@ -350,6 +351,96 @@ describe('closing and reopening an Account', () => {
 
     expect(fetchMock).toHaveBeenCalledWith('/api/accounts/old-savings/reopen', expect.objectContaining({ method: 'POST' }))
     const row = page.findAll('li').find((item) => item.text().includes('Old savings'))
+    expect(row).toBeDefined()
     expect(row?.text()).not.toContain('Closed')
+  })
+})
+
+describe('checking the Opening Balance before it is sent', () => {
+  async function startForm(kindLabel: string): Promise<FoundElement> {
+    fakeApi(signedIn)
+    const { page } = await visit('/accounts')
+    await press(page, 'New account')
+    const dialog = openDialogBox()
+    await field(dialog, 'Name').get('input').setValue('Anything')
+    await pickOption(field(dialog, 'Kind'), kindLabel)
+    return dialog
+  }
+
+  it.each([
+    ['1,5', 'Enter a number such as 1250.50.'],
+    ['1e3', 'Enter a number such as 1250.50.'],
+    ['abc', 'Enter a number such as 1250.50.'],
+  ])('refuses "%s" instead of quietly starting the Account at zero', async (typed, hint) => {
+    const dialog = await startForm('Checking')
+
+    await field(dialog, 'Opening balance').get('input').setValue(typed)
+    await flushPromises()
+
+    expect(field(dialog, 'Opening balance').text()).toContain(hint)
+    expect(dialog.get('button[type="submit"]').attributes('disabled')).toBeDefined()
+  })
+
+  it('accepts a negative balance for an overdrawn Checking Account', async () => {
+    const dialog = await startForm('Checking')
+
+    await field(dialog, 'Opening balance').get('input').setValue('-25.5')
+    await flushPromises()
+
+    expect(field(dialog, 'Opening balance').text()).not.toContain('Enter a number')
+    expect(dialog.get('button[type="submit"]').attributes('disabled')).toBeUndefined()
+  })
+
+  it('asks for the amount owed as a positive number', async () => {
+    const dialog = await startForm('Credit card')
+
+    await field(dialog, 'Amount owed').get('input').setValue('-50')
+    await flushPromises()
+
+    expect(field(dialog, 'Amount owed').text()).toContain('Enter the amount owed as a positive number.')
+    expect(dialog.get('button[type="submit"]').attributes('disabled')).toBeDefined()
+  })
+
+  it.each([
+    ['2999-01-01', 'The date can\'t be after today.'],
+    ['', 'Choose the date this balance is as of.'],
+  ])('says what is wrong with the date "%s"', async (date, hint) => {
+    const dialog = await startForm('Checking')
+    await field(dialog, 'Opening balance').get('input').setValue('10')
+
+    await field(dialog, 'As of').get('input').setValue(date)
+    await flushPromises()
+
+    expect(field(dialog, 'As of').text()).toContain(hint)
+    expect(dialog.get('button[type="submit"]').attributes('disabled')).toBeDefined()
+  })
+})
+
+describe('closing an Account that still holds money', () => {
+  it('warns about the balance before asking, so the refusal is no surprise', async () => {
+    fakeApi({ ...signedIn, 'GET /api/accounts': () => json(200, [checking]) })
+    const { page } = await visit('/accounts')
+
+    await press(page, 'Close Everyday')
+
+    expect(confirmationBox().text()).toContain('Everyday still holds $1,250.50')
+    expect(confirmationBox().text()).toContain('only be closed at zero')
+  })
+})
+
+describe('Closed Accounts among the open ones', () => {
+  it('lists the Closed Accounts after the open ones', async () => {
+    fakeApi({
+      ...signedIn,
+      'GET /api/accounts': () => json(200, []),
+      'GET /api/accounts?includeClosed=true': () => json(200, [oldSavings, checking]),
+    })
+    const { page } = await visit('/accounts')
+
+    await page.get('[role="switch"]').trigger('click')
+    await flushPromises()
+
+    const names = page.findAll('section[aria-labelledby="own-heading"] li').map((row) => row.get('.account-row__name').text())
+    expect(names).toEqual(['Everyday', 'Old savings'])
   })
 })

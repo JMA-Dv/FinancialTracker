@@ -3,17 +3,16 @@ import { ElFormItem, ElInput, ElOption, ElSelect } from 'element-plus'
 import { computed, ref } from 'vue'
 import { accountKinds } from '@/accountKinds'
 import { useSubmit } from '@/composables/useSubmit'
-import { currencyOptions } from '@/currencies'
 import { minorUnits } from '@/money'
 import { useAccountsStore, type AccountKind, type CreateAccountRequest } from '@/stores/accounts'
 import { useSessionStore } from '@/stores/session'
+import CurrencySelect from './CurrencySelect.vue'
 import FormDialog from './FormDialog.vue'
 
 const emit = defineEmits<{ close: []; saved: [] }>()
 
 const accounts = useAccountsStore()
 const session = useSessionStore()
-const currencies = currencyOptions()
 
 // Date-only, in UTC, like the API's "not after today" rule.
 const today = new Date().toISOString().slice(0, 10)
@@ -27,13 +26,39 @@ const date = ref(today)
 const isCreditCard = computed(() => kind.value === 'CreditCard')
 const amountLabel = computed(() => (isCreditCard.value ? 'Amount owed' : 'Opening balance'))
 
-const hasAmount = computed(() => amountText.value.trim() !== '')
-const amount = computed(() => Number(amountText.value))
-const decimals = computed(() => amountText.value.split('.')[1]?.length ?? 0)
+// Plain digits with an optional decimal part. Anything else (a comma, an exponent) is refused rather than
+// guessed at, because a number field would quietly read it as empty and start the Account at zero.
+const AMOUNT = /^-?\d+(\.\d+)?$/
+const AMOUNT_OWED = /^\d+(\.\d+)?$/
+
+const amountTrimmed = computed(() => amountText.value.trim())
+const hasAmount = computed(() => amountTrimmed.value !== '')
 const allowedDecimals = computed(() => (currency.value === '' ? 2 : minorUnits(currency.value)))
-const amountError = computed(() =>
-  decimals.value > allowedDecimals.value ? `${currency.value} has ${allowedDecimals.value} decimal places.` : '',
-)
+
+// The API stays the authority; these hints only save a round trip.
+const amountError = computed(() => {
+  if (!hasAmount.value) {
+    return ''
+  }
+  if (isCreditCard.value && !AMOUNT_OWED.test(amountTrimmed.value)) {
+    return 'Enter the amount owed as a positive number.'
+  }
+  if (!AMOUNT.test(amountTrimmed.value)) {
+    return 'Enter a number such as 1250.50.'
+  }
+  const decimals = amountTrimmed.value.split('.')[1]?.length ?? 0
+  return decimals > allowedDecimals.value ? `${currency.value} has ${allowedDecimals.value} decimal places.` : ''
+})
+
+const dateError = computed(() => {
+  if (!hasAmount.value) {
+    return ''
+  }
+  if (date.value === '') {
+    return 'Choose the date this balance is as of.'
+  }
+  return date.value > today ? 'The date can\'t be after today.' : ''
+})
 
 const canSave = computed(
   () =>
@@ -41,7 +66,7 @@ const canSave = computed(
     kind.value !== undefined &&
     currency.value !== '' &&
     amountError.value === '' &&
-    (!hasAmount.value || (Number.isFinite(amount.value) && date.value !== '')),
+    dateError.value === '',
 )
 
 const { pending, error, submit } = useSubmit(() => {
@@ -51,8 +76,8 @@ const { pending, error, submit } = useSubmit(() => {
   const request: CreateAccountRequest = { name: name.value, kind: kind.value, currency: currency.value }
   if (hasAmount.value) {
     // The form asks a Credit Card's balance as the amount owed; the API keeps money owed negative.
-    const signed = isCreditCard.value ? -Math.abs(amount.value) : amount.value
-    request.openingBalance = { amount: signed, date: date.value }
+    const entered = Number(amountTrimmed.value)
+    request.openingBalance = { amount: isCreditCard.value ? -entered : entered, date: date.value }
   }
   return accounts.create(request)
 })
@@ -82,16 +107,15 @@ async function save(): Promise<void> {
       </ElSelect>
     </ElFormItem>
     <ElFormItem label="Currency">
-      <ElSelect v-model="currency" filterable placeholder="Search by code or name">
-        <ElOption v-for="option in currencies" :key="option.code" :value="option.code" :label="option.label" />
-      </ElSelect>
+      <CurrencySelect v-model="currency" />
     </ElFormItem>
     <ElFormItem :label="amountLabel">
-      <ElInput v-model="amountText" type="number" :step="10 ** -allowedDecimals" placeholder="Optional" />
+      <ElInput v-model="amountText" inputmode="decimal" placeholder="Optional" />
       <p v-if="amountError" role="status" class="create-account__hint">{{ amountError }}</p>
     </ElFormItem>
     <ElFormItem label="As of">
       <ElInput v-model="date" type="date" :max="today" />
+      <p v-if="dateError" role="status" class="create-account__hint">{{ dateError }}</p>
     </ElFormItem>
   </FormDialog>
 </template>

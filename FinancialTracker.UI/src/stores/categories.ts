@@ -37,6 +37,7 @@ export const useCategoriesStore = defineStore('categories', () => {
     failure,
     items: tree,
     load,
+    mutate,
   } = useLoadedList(() =>
     api.get<CategoryNode[]>(includeArchived.value ? '/api/categories?includeArchived=true' : '/api/categories'),
   )
@@ -57,12 +58,6 @@ export const useCategoriesStore = defineStore('categories', () => {
           })),
       ]),
   )
-
-  /** Runs a change, then refreshes the tree so every screen sees it. */
-  async function mutate(change: () => Promise<unknown>): Promise<void> {
-    await change()
-    await load()
-  }
 
   /** Adds a Category. */
   function create(request: CreateCategoryRequest): Promise<void> {

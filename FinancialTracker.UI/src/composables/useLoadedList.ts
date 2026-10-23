@@ -10,6 +10,8 @@ export interface LoadedList<T> {
   failure: Ref<string>
   items: Ref<T[]>
   load: () => Promise<void>
+  /** Runs a change, then fetches the list again so every screen sees it. */
+  mutate: (change: () => Promise<unknown>) => Promise<void>
 }
 
 /**
@@ -40,5 +42,10 @@ export function useLoadedList<T>(fetchItems: () => Promise<T[]>): LoadedList<T> 
     }
   }
 
-  return { status, failure, items, load }
+  async function mutate(change: () => Promise<unknown>): Promise<void> {
+    await change()
+    await load()
+  }
+
+  return { status, failure, items, load, mutate }
 }
