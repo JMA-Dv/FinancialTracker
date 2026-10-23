@@ -1,21 +1,10 @@
 import { DOMWrapper, flushPromises } from '@vue/test-utils'
 import { describe, expect, it } from 'vitest'
-import { fakeApi, json, signedIn, visit } from './testing/harness'
+import { fakeApi, json, pickOption, signedIn, visit } from './testing/harness'
 
 const withoutCurrency = { 'GET /api/user-settings': () => json(200, { email: 'ana@example.com', currency: null }) }
 
-/** Opens the Currency picker and clicks the option whose text contains `text`. */
-async function pickCurrency(page: DOMWrapper<HTMLElement>, text: string): Promise<void> {
-  await page.get('.el-select__wrapper').trigger('click')
-  await flushPromises()
-  const options = Array.from(document.body.querySelectorAll<HTMLElement>('.el-select-dropdown__item'))
-  const option = options.find((candidate) => candidate.textContent?.includes(text))
-  if (option === undefined) {
-    throw new Error(`No Currency option contains "${text}"`)
-  }
-  await new DOMWrapper(option).trigger('click')
-  await flushPromises()
-}
+const pickCurrency = pickOption
 
 async function save(page: DOMWrapper<HTMLElement>): Promise<void> {
   await page.get('button[type="submit"]').trigger('click')

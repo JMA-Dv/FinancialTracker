@@ -27,6 +27,11 @@ export const navItems: NavItem[] = [
   { label: 'Payees', to: '/payees' },
 ]
 
+/** Screens that exist; the rest of `navItems` show "coming soon". */
+const builtScreens: Record<string, RouteRecordRaw['component']> = {
+  '/categories': () => import('@/views/CategoriesView.vue'),
+}
+
 /** Where to send someone who must sign in first; Google brings them back to `returnUrl`. */
 export function signInLocation(returnUrl: string): RouteLocationRaw {
   return { name: 'sign-in', query: { returnUrl } }
@@ -50,7 +55,7 @@ const routes: RouteRecordRaw[] = [
     (item): RouteRecordRaw => ({
       path: item.to,
       name: item.label.toLowerCase(),
-      component: () => import('@/views/ComingSoonView.vue'),
+      component: builtScreens[item.to] ?? (() => import('@/views/ComingSoonView.vue')),
       meta: { requiresAuth: true, needsCurrency: true, title: item.label },
     }),
   ),
