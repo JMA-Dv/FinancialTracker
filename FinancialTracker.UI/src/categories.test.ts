@@ -372,3 +372,19 @@ describe('moving a child of an Archived Category', () => {
     expect(dialog.get('button[type="submit"]').attributes('disabled')).toBeDefined()
   })
 })
+
+describe('when the server cannot be reached', () => {
+  it('tells the User in an alert, in the dialog they are using', async () => {
+    const fetchMock = fakeApi({ ...signedIn, 'GET /api/categories': () => json(200, [salary]) })
+    const { page } = await visit('/categories')
+    await press(page, 'Rename Salary')
+    const dialog = documentBody().get('[role="dialog"]')
+    fetchMock.mockRejectedValueOnce(new TypeError('Failed to fetch'))
+
+    await dialog.get('input.el-input__inner').setValue('Pay')
+    await press(dialog, 'Save')
+
+    expect(dialog.get('[role="alert"]').text()).toContain('Could not reach the server. Check your connection and try again.')
+    expect(documentBody().find('[role="dialog"]').exists()).toBe(true)
+  })
+})

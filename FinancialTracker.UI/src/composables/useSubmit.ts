@@ -25,6 +25,8 @@ export function useSubmit<Args extends unknown[] = []>(action: (...args: Args) =
       return true
     } catch (failure) {
       if (!(failure instanceof ApiClientError)) {
+        // Not the API's doing, so it is a bug: the User still hears that it failed, and it is raised for the logs.
+        error.value = describeFailure(failure)
         throw failure
       }
       // A 401 is already sending the User to sign-in.

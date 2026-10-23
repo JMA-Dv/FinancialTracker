@@ -98,4 +98,13 @@ describe('API client', () => {
     expect(failure).toBeInstanceOf(ProblemError)
     expect(failure).toMatchObject({ status: 502, message: 'The server could not be reached or failed (502).' })
   })
+
+  it('reports an unreachable server as a failure the User can read', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new TypeError('Failed to fetch')))
+
+    const failure = await api.get('/api/accounts').catch((error: unknown) => error)
+
+    expect(failure).toBeInstanceOf(ProblemError)
+    expect((failure as ProblemError).message).toBe('Could not reach the server. Check your connection and try again.')
+  })
 })
