@@ -96,3 +96,14 @@ export const checkingHistory: FixtureHistoryEntry[] = [
   { kind: 'Transfer', id: 'to-savings', date: '2026-09-20', amount: 50, statedBalance: null },
   { kind: 'BalanceAdjustment', id: 'opening', date: '2026-09-01', amount: 70, statedBalance: 70 },
 ]
+
+/** A Payee as `GET /api/payees` returns it. */
+export interface FixturePayee {
+  id: string
+  name: string
+  suggestedCategoryId: string | null
+}
+
+export const corner: FixturePayee = { id: 'corner', name: 'Corner Market', suggestedCategoryId: 'groceries' }
+
+export const landlord: FixturePayee = { id: 'landlord', name: 'Landlord', suggestedCategoryId: null }
