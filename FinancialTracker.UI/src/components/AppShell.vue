@@ -1,31 +1,21 @@
 <script setup lang="ts">
-import { ElAlert, ElButton } from 'element-plus'
-import { ref } from 'vue'
+import { ElButton } from 'element-plus'
 import { useRouter } from 'vue-router'
-import { ApiClientError, UnauthorizedError } from '@/api/client'
+import { useSubmit } from '@/composables/useSubmit'
 import { navItems } from '@/router'
 import { useSessionStore } from '@/stores/session'
+import ErrorAlert from './ErrorAlert.vue'
 
 const session = useSessionStore()
 const router = useRouter()
 
-const signOutError = ref('')
+// A 401 here means the session was already gone; the 401 handler is sending the User to sign-in.
+const { error: signOutError, submit: trySignOut } = useSubmit(() => session.signOut())
 
 async function signOut(): Promise<void> {
-  signOutError.value = ''
-  try {
-    await session.signOut()
-  } catch (error) {
-    if (!(error instanceof ApiClientError)) {
-      throw error
-    }
-    // The session was already gone; the 401 handler is sending the User to sign-in.
-    if (!(error instanceof UnauthorizedError)) {
-      signOutError.value = error.message
-    }
-    return
+  if (await trySignOut()) {
+    await router.push({ name: 'sign-in' })
   }
-  await router.push({ name: 'sign-in' })
 }
 </script>
 
@@ -42,7 +32,7 @@ async function signOut(): Promise<void> {
       <RouterLink to="/settings" class="shell__link">Settings</RouterLink>
       <ElButton @click="signOut">Sign out</ElButton>
     </header>
-    <ElAlert v-if="signOutError" type="error" show-icon :closable="false" :title="`Could not sign out. ${signOutError}`" />
+    <ErrorAlert v-if="signOutError" title="Could not sign out" :description="signOutError" />
     <main class="shell__content">
       <RouterView />
     </main>

@@ -1,21 +1,8 @@
 import { DOMWrapper, flushPromises } from '@vue/test-utils'
 import { describe, expect, it } from 'vitest'
-import { fakeApi, json, signedIn, visit } from './testing/harness'
+import { fakeApi, json, pickOption, signedIn, visit } from './testing/harness'
 
 const withoutCurrency = { 'GET /api/user-settings': () => json(200, { email: 'ana@example.com', currency: null }) }
-
-/** Opens the Currency picker and clicks the option whose text contains `text`. */
-async function pickCurrency(page: DOMWrapper<HTMLElement>, text: string): Promise<void> {
-  await page.get('.el-select__wrapper').trigger('click')
-  await flushPromises()
-  const options = Array.from(document.body.querySelectorAll<HTMLElement>('.el-select-dropdown__item'))
-  const option = options.find((candidate) => candidate.textContent?.includes(text))
-  if (option === undefined) {
-    throw new Error(`No Currency option contains "${text}"`)
-  }
-  await new DOMWrapper(option).trigger('click')
-  await flushPromises()
-}
 
 async function save(page: DOMWrapper<HTMLElement>): Promise<void> {
   await page.get('button[type="submit"]').trigger('click')
@@ -51,7 +38,7 @@ describe('Currency setup', () => {
     })
     const { page, navigate } = await visit('/accounts')
 
-    await pickCurrency(page, 'US Dollar')
+    await pickOption(page, 'US Dollar')
     await save(page)
 
     expect(fetchMock).toHaveBeenCalledWith(
@@ -85,7 +72,7 @@ describe('Currency setup', () => {
   ])('shows what the API says about %s and keeps the choice', async (_kind, refusal, shown) => {
     fakeApi({ ...withoutCurrency, 'PUT /api/user-settings/currency': () => refusal })
     const { page } = await visit('/accounts')
-    await pickCurrency(page, 'US Dollar')
+    await pickOption(page, 'US Dollar')
 
     await save(page)
 
@@ -112,7 +99,7 @@ describe('Settings', () => {
     expect(page.get('main').text()).toContain('only the default for new Accounts')
     expect(page.get('main').text()).toContain('nothing that already exists is converted')
 
-    await pickCurrency(page, 'Mexican Peso')
+    await pickOption(page, 'Mexican Peso')
     await save(page)
 
     expect(fetchMock).toHaveBeenCalledWith(
@@ -139,12 +126,12 @@ describe('Settings', () => {
         refuse ? json(400, { title: 'Unknown Currency', detail: 'Not a Currency.' }) : json(200, { email: 'ana@example.com', currency: 'MXN' }),
     })
     const { page } = await visit('/settings')
-    await pickCurrency(page, 'Mexican Peso')
+    await pickOption(page, 'Mexican Peso')
     await save(page)
     expect(page.get('[role="status"]').text()).toBe('Currency saved.')
 
     refuse = true
-    await pickCurrency(page, 'Euro')
+    await pickOption(page, 'Euro')
     await save(page)
 
     expect(page.get('[role="status"]').text()).toBe('')

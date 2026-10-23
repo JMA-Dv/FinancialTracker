@@ -1,7 +1,8 @@
 <script setup lang="ts">
-import { ElAlert, ElButton } from 'element-plus'
+import { ElButton } from 'element-plus'
 import { useRoute, useRouter } from 'vue-router'
 import AppShell from '@/components/AppShell.vue'
+import ErrorAlert from '@/components/ErrorAlert.vue'
 import { useSessionStore } from '@/stores/session'
 
 const route = useRoute()
@@ -18,7 +19,7 @@ async function retry(): Promise<void> {
 <template>
   <template v-if="route.meta.requiresAuth === true && session.status === 'failed'">
     <main class="session-error">
-      <ElAlert type="error" show-icon :closable="false" title="Could not load your session" :description="session.failure" />
+      <ErrorAlert title="Could not load your session" :description="session.failure" />
       <ElButton type="primary" @click="retry">Try again</ElButton>
     </main>
   </template>

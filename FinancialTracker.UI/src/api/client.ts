@@ -81,7 +81,13 @@ async function send<T>(method: string, path: string, body?: unknown): Promise<T>
     init.body = JSON.stringify(body)
   }
 
-  const response = await fetch(path, init)
+  let response: Response
+  try {
+    response = await fetch(path, init)
+  } catch {
+    // fetch rejects when nothing answered (offline, server down); the User needs words, not a TypeError.
+    throw new ProblemError(0, '', 'Could not reach the server. Check your connection and try again.')
+  }
   if (response.status === 401) {
     unauthorizedHandler()
     throw new UnauthorizedError()

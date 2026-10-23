@@ -52,3 +52,36 @@ afterEach(() => {
   vi.unstubAllGlobals()
   document.body.innerHTML = ''
 })
+
+type Scope = Pick<DOMWrapper<Element>, 'element' | 'get'>
+
+/** The whole document, for what Element Plus renders outside the app: dialogs and dropdowns. */
+export function documentBody(): DOMWrapper<HTMLElement> {
+  return new DOMWrapper(document.body)
+}
+
+/** Opens the select inside `scope` and clicks the option whose text contains `text`. */
+export async function pickOption(scope: Scope, text: string): Promise<void> {
+  await scope.get('.el-select__wrapper').trigger('click')
+  await flushPromises()
+  const options = Array.from(document.body.querySelectorAll<HTMLElement>('.el-select-dropdown__item'))
+  const option = options.find((candidate) => candidate.textContent?.includes(text))
+  if (option === undefined) {
+    throw new Error(`No option contains "${text}"`)
+  }
+  await new DOMWrapper(option).trigger('click')
+  await flushPromises()
+}
+
+/** Clicks the button inside `scope` whose text or accessible name is `name`. */
+export async function press(scope: Scope, name: string): Promise<void> {
+  const buttons = Array.from(scope.element.querySelectorAll<HTMLElement>('button'))
+  const button = buttons.find(
+    (candidate) => candidate.textContent?.trim() === name || candidate.getAttribute('aria-label') === name,
+  )
+  if (button === undefined) {
+    throw new Error(`No button named "${name}"`)
+  }
+  await new DOMWrapper(button).trigger('click')
+  await flushPromises()
+}
