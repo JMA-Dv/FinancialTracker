@@ -79,6 +79,26 @@ describe('signing in', () => {
   )
 })
 
+describe('routes that do not exist', () => {
+  it('asks a signed-out visitor to sign in before saying anything about the page', async () => {
+    fakeApi(signedOut)
+
+    const { page } = await visit('/nowhere')
+
+    expect(page.get('a[href^="/api/auth/google/sign-in"]').attributes('href')).toBe(
+      '/api/auth/google/sign-in?returnUrl=%2Fnowhere',
+    )
+  })
+
+  it('tells a signed-in User the page does not exist', async () => {
+    fakeApi(signedIn)
+
+    const { page } = await visit('/nowhere')
+
+    expect(page.get('main').text()).toContain('Page not found')
+  })
+})
+
 describe('the app shell', () => {
   it('lands a signed-in User on the route they asked for, showing their email and the navigation', async () => {
     fakeApi(signedIn)
@@ -109,6 +129,17 @@ describe('the app shell', () => {
     expect(fetchMock).toHaveBeenCalledWith('/api/auth/sign-out', expect.objectContaining({ method: 'POST' }))
     expect(page.text()).toContain('Sign in with Google')
     expect(page.find('header').exists()).toBe(false)
+  })
+
+  it('goes to sign-in without an error when sign-out finds the session already expired', async () => {
+    fakeApi({ ...signedIn, 'POST /api/auth/sign-out': () => json(401) })
+    const { page } = await visit('/accounts')
+
+    await page.get('header button').trigger('click')
+    await flushPromises()
+
+    expect(page.text()).toContain('Sign in with Google')
+    expect(page.find('[role="alert"]').exists()).toBe(false)
   })
 
   it('keeps the User signed in and says so when sign-out fails', async () => {

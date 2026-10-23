@@ -27,7 +27,7 @@ Set them in `FinancialTracker.UI/.env.local` (git-ignored); `.env.example` lists
 
 ### Signing in with Google
 
-The API tells Google to send the browser back to the origin it was called on, which is this dev server, and Google only accepts an https redirect for it. So the dev server must run over https:
+The API tells Google to send the browser back to the scheme and host it was called with. Through the proxy that is the dev server's host, but the scheme is `https` (the proxy talks to the API over https), so Google would redirect to `https://localhost:5173/signin-google`. The dev server must therefore answer over https, and it proxies that path to the API:
 
 1. Export the ASP.NET development certificate (trusted already if you followed [the Google steps](../docs/google-auth-client-steps.md)) next to the app. `certs/` is git-ignored:
 

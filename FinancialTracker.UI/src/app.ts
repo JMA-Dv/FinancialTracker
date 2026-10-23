@@ -3,7 +3,7 @@ import { createApp, type App as VueApp } from 'vue'
 import type { Router, RouterHistory } from 'vue-router'
 import App from './App.vue'
 import { onUnauthorized } from './api/client'
-import { createAppRouter } from './router'
+import { createAppRouter, signInLocation } from './router'
 import { useSessionStore } from './stores/session'
 
 export function createFinanceApp(history: RouterHistory): { app: VueApp; router: Router } {
@@ -20,7 +20,7 @@ export function createFinanceApp(history: RouterHistory): { app: VueApp; router:
       return
     }
     session.clear()
-    void router.replace({ name: 'sign-in', query: { returnUrl: router.currentRoute.value.fullPath } })
+    void router.replace(signInLocation(router.currentRoute.value.fullPath))
   })
 
   return { app, router }

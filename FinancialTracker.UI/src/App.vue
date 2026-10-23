@@ -2,6 +2,7 @@
 import { ElAlert, ElButton } from 'element-plus'
 import { useRoute, useRouter } from 'vue-router'
 import AppShell from '@/components/AppShell.vue'
+import { signInLocation } from '@/router'
 import { useSessionStore } from '@/stores/session'
 
 const route = useRoute()
@@ -11,7 +12,7 @@ const session = useSessionStore()
 async function retry(): Promise<void> {
   await session.load()
   if (session.status === 'signedOut') {
-    await router.replace({ name: 'sign-in', query: { returnUrl: route.fullPath } })
+    await router.replace(signInLocation(route.fullPath))
   }
 }
 </script>

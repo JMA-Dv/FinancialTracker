@@ -1,5 +1,5 @@
 import type { Pinia } from 'pinia'
-import { createRouter, type RouteRecordRaw, type Router, type RouterHistory } from 'vue-router'
+import { createRouter, type RouteLocationRaw, type RouteRecordRaw, type Router, type RouterHistory } from 'vue-router'
 import { useSessionStore } from '@/stores/session'
 
 declare module 'vue-router' {
@@ -25,6 +25,11 @@ export const navItems: NavItem[] = [
   { label: 'Payees', to: '/payees' },
 ]
 
+/** Where to send someone who must sign in first; Google brings them back to `returnUrl`. */
+export function signInLocation(returnUrl: string): RouteLocationRaw {
+  return { name: 'sign-in', query: { returnUrl } }
+}
+
 const routes: RouteRecordRaw[] = [
   { path: '/sign-in', name: 'sign-in', component: () => import('@/views/SignInView.vue'), meta: { title: 'Sign in' } },
   ...navItems.map(
@@ -35,6 +40,13 @@ const routes: RouteRecordRaw[] = [
       meta: { requiresAuth: true, title: item.label },
     }),
   ),
+  // Requires auth so a signed-out visitor is asked to sign in before learning which paths exist.
+  {
+    path: '/:path(.*)*',
+    name: 'not-found',
+    component: () => import('@/views/NotFoundView.vue'),
+    meta: { requiresAuth: true, title: 'Page not found' },
+  },
 ]
 
 export function createAppRouter(history: RouterHistory, pinia: Pinia): Router {
@@ -49,7 +61,7 @@ export function createAppRouter(history: RouterHistory, pinia: Pinia): Router {
       await session.load()
     }
     if (session.status === 'signedOut') {
-      return { name: 'sign-in', query: { returnUrl: to.fullPath } }
+      return signInLocation(to.fullPath)
     }
     return true
   })

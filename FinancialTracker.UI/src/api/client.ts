@@ -87,5 +87,4 @@ async function send<T>(method: string, path: string, body?: unknown): Promise<T>
 export const api = {
   get: <T>(path: string): Promise<T> => send<T>('GET', path),
   post: <T = void>(path: string, body?: unknown): Promise<T> => send<T>('POST', path, body),
-  put: <T = void>(path: string, body?: unknown): Promise<T> => send<T>('PUT', path, body),
 }

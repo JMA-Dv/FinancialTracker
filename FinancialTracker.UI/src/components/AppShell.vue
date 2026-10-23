@@ -2,7 +2,7 @@
 import { ElAlert, ElButton } from 'element-plus'
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
-import { ApiClientError } from '@/api/client'
+import { ApiClientError, UnauthorizedError } from '@/api/client'
 import { navItems } from '@/router'
 import { useSessionStore } from '@/stores/session'
 
@@ -19,7 +19,10 @@ async function signOut(): Promise<void> {
     if (!(error instanceof ApiClientError)) {
       throw error
     }
-    signOutError.value = error.message
+    // The session was already gone; the 401 handler is sending the User to sign-in.
+    if (!(error instanceof UnauthorizedError)) {
+      signOutError.value = error.message
+    }
     return
   }
   await router.push({ name: 'sign-in' })

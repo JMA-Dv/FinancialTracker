@@ -77,13 +77,13 @@ describe('API client', () => {
     const fetchMock = fakeFetch(respond(204))
 
     const result = await api.post('/api/auth/sign-out')
-    await api.put('/api/user-settings/currency', { currency: 'USD' })
+    await api.post('/api/user-settings/currency', { currency: 'USD' })
 
     expect(result).toBeUndefined()
     expect(fetchMock).toHaveBeenLastCalledWith(
       '/api/user-settings/currency',
       expect.objectContaining({
-        method: 'PUT',
+        method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ currency: 'USD' }),
       }),
