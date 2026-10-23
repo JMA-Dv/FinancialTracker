@@ -26,7 +26,14 @@ export function fakeApi(routes: FakeApi): ReturnType<typeof vi.fn> {
 
 const mounted: App[] = []
 
-export async function visit(path: string): Promise<{ page: DOMWrapper<HTMLElement>; navigate: (to: string) => Promise<void> }> {
+export interface Visit {
+  page: DOMWrapper<HTMLElement>
+  navigate: (to: string) => Promise<void>
+  /** Where the app is now: the path and query. */
+  location: () => string
+}
+
+export async function visit(path: string): Promise<Visit> {
   const { app, router } = createFinanceApp(createMemoryHistory())
   await router.push(path)
   await router.isReady()
@@ -41,6 +48,7 @@ export async function visit(path: string): Promise<{ page: DOMWrapper<HTMLElemen
       await router.push(to)
       await flushPromises()
     },
+    location: () => router.currentRoute.value.fullPath,
   }
 }
 
@@ -64,12 +72,22 @@ export function documentBody(): DOMWrapper<HTMLElement> {
   return new DOMWrapper(document.body)
 }
 
-/** Opens the select inside `scope` and clicks the option whose text contains `text`. */
-export async function pickOption(scope: Scope, text: string): Promise<void> {
+/** Opens the select inside `scope` and returns its options; other selects' dropdowns stay in the document, hidden. */
+async function openOptions(scope: Scope): Promise<HTMLElement[]> {
   await scope.get('.el-select__wrapper').trigger('click')
   await flushPromises()
-  const options = Array.from(document.body.querySelectorAll<HTMLElement>('.el-select-dropdown__item'))
-  const option = options.find((candidate) => candidate.textContent?.includes(text))
+  const list = document.getElementById(scope.get('input.el-select__input').attributes('aria-controls') ?? '')
+  return Array.from(list?.querySelectorAll<HTMLElement>('.el-select-dropdown__item') ?? [])
+}
+
+/** The text of each option of the select inside `scope`. */
+export async function optionLabels(scope: Scope): Promise<string[]> {
+  return (await openOptions(scope)).map((option) => option.textContent?.trim() ?? '')
+}
+
+/** Opens the select inside `scope` and clicks the option whose text contains `text`. */
+export async function pickOption(scope: Scope, text: string): Promise<void> {
+  const option = (await openOptions(scope)).find((candidate) => candidate.textContent?.includes(text))
   if (option === undefined) {
     throw new Error(`No option contains "${text}"`)
   }
@@ -106,4 +124,9 @@ export type FoundElement = Omit<DOMWrapper<Element>, 'exists'>
 /** The open dialog, wherever Element Plus put it. */
 export function dialog(): FoundElement {
   return documentBody().get('[role="dialog"]')
+}
+
+/** The open confirmation box, wherever Element Plus put it. */
+export function confirmationBox(): FoundElement {
+  return documentBody().get('.el-message-box')
 }
