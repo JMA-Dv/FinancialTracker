@@ -165,3 +165,47 @@ export const oldPurchase: FixtureTransaction = {
   payeeId: null,
   note: null,
 }
+
+/** A Transfer as `GET /api/transfers` returns it. */
+export interface FixtureTransfer {
+  id: string
+  fromAccountId: string
+  toAccountId: string
+  date: string
+  amount: number
+  receivedAmount: number
+  note: string | null
+}
+
+/** Paying off the Credit Card: both Accounts in USD. */
+export const cardPayment: FixtureTransfer = {
+  id: 'card-payment',
+  fromAccountId: 'checking',
+  toAccountId: 'visa',
+  date: '2026-10-05',
+  amount: 100,
+  receivedAmount: 100,
+  note: 'October bill',
+}
+
+/** USD into a MXN Account. */
+export const toWallet: FixtureTransfer = {
+  id: 'to-wallet',
+  fromAccountId: 'checking',
+  toAccountId: 'wallet',
+  date: '2026-10-03',
+  amount: 50,
+  receivedAmount: 900,
+  note: null,
+}
+
+/** Out of an Account that is closed. */
+export const fromOldSavings: FixtureTransfer = {
+  id: 'from-old-savings',
+  fromAccountId: 'old-savings',
+  toAccountId: 'checking',
+  date: '2026-08-01',
+  amount: 5,
+  receivedAmount: 5,
+  note: null,
+}

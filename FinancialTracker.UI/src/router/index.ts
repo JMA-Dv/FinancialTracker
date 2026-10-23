@@ -32,6 +32,7 @@ const builtScreens: Record<string, RouteRecordRaw['component']> = {
   '/accounts': () => import('@/views/AccountsView.vue'),
   '/categories': () => import('@/views/CategoriesView.vue'),
   '/transactions': () => import('@/views/TransactionsView.vue'),
+  '/transfers': () => import('@/views/TransfersView.vue'),
   '/payees': () => import('@/views/PayeesView.vue'),
 }
 
