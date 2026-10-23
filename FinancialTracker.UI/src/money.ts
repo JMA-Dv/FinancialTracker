@@ -29,3 +29,12 @@ export function amountProblem(text: string, currency: string): string {
   const allowed = currency === '' ? 2 : minorUnits(currency)
   return decimals > allowed ? `${currency} has ${allowed} decimal places.` : ''
 }
+
+/** Like `amountProblem`, and the amount must be above zero: for money that moves one way, with the direction kept apart. */
+export function positiveAmountProblem(text: string, currency: string): string {
+  const problem = amountProblem(text, currency)
+  if (problem !== '' || text === '') {
+    return problem
+  }
+  return Number(text) > 0 ? '' : 'The amount must be above zero.'
+}

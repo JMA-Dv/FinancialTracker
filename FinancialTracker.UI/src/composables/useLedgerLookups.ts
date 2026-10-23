@@ -1,6 +1,7 @@
 import { computed, type ComputedRef } from 'vue'
 import { api } from '@/api/client'
 import { flattenCategories, type CategoryOption } from '@/categoryRules'
+import { useAllAccounts } from '@/composables/useAllAccounts'
 import { useLoadedList, type LoadStatus } from '@/composables/useLoadedList'
 import type { Account } from '@/stores/accounts'
 import type { CategoryNode } from '@/stores/categories'
@@ -16,12 +17,9 @@ export interface LedgerLookups {
   load: () => Promise<void>
 }
 
-/**
- * The Accounts and Categories a Transaction can refer to. They are fetched apart from the Accounts and Categories
- * stores because those hold whatever their own screens toggled, and a Transaction needs the names of all of them.
- */
+/** The Accounts and Categories a Transaction can refer to, archived and closed ones too. */
 export function useLedgerLookups(): LedgerLookups {
-  const accountList = useLoadedList(() => api.get<Account[]>('/api/accounts?includeClosed=true'))
+  const accountList = useAllAccounts()
   const categoryList = useLoadedList(() => api.get<CategoryNode[]>('/api/categories?includeArchived=true'))
   const lists = [accountList, categoryList]
 

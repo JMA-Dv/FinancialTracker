@@ -12,7 +12,7 @@ import { computed, ref } from 'vue'
 import type { CategoryOption } from '@/categoryRules'
 import { useSubmit } from '@/composables/useSubmit'
 import { todayUtc } from '@/dates'
-import { amountProblem } from '@/money'
+import { positiveAmountProblem } from '@/money'
 import type { Account } from '@/stores/accounts'
 import { usePayeesStore } from '@/stores/payees'
 import { categoryHint, type SaveTransactionRequest, type Transaction, type TransactionDirection } from '@/transactionRules'
@@ -60,13 +60,7 @@ const hint = computed(() => (category.value === undefined ? null : categoryHint(
 
 const currency = computed(() => props.accounts.find((account) => account.id === accountId.value)?.currency ?? '')
 const amountTrimmed = computed(() => amountText.value.trim())
-const amountError = computed(() => {
-  const problem = amountProblem(amountTrimmed.value, currency.value)
-  if (problem !== '' || amountTrimmed.value === '') {
-    return problem
-  }
-  return Number(amountTrimmed.value) > 0 ? '' : 'The amount must be above zero.'
-})
+const amountError = computed(() => positiveAmountProblem(amountTrimmed.value, currency.value))
 const dateError = computed(() => {
   if (date.value === '') {
     return 'Choose the date of the Transaction.'
