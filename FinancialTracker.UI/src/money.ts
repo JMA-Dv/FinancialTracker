@@ -38,3 +38,13 @@ export function positiveAmountProblem(text: string, currency: string): string {
   }
   return Number(text) > 0 ? '' : 'The amount must be above zero.'
 }
+
+/** An amount rounded to whole units, for axis labels where cents are noise. */
+export function formatWholeMoney(amount: number, currency: string): string {
+  return new Intl.NumberFormat('en-US', { style: 'currency', currency, maximumFractionDigits: 0 }).format(amount)
+}
+
+/** The name of a Currency, such as "US Dollar" for USD; the code itself when the runtime has no name for it. */
+export function currencyName(currency: string): string {
+  return new Intl.DisplayNames('en-US', { type: 'currency' }).of(currency) ?? currency
+}

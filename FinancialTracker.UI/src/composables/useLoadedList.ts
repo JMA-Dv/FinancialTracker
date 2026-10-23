@@ -1,8 +1,7 @@
-import { ref, shallowRef, type Ref } from 'vue'
-import { describeFailure } from '@/api/client'
+import type { Ref } from 'vue'
+import { useLoaded, type LoadStatus } from './useLoaded'
 
-/** Whether the list has been asked for yet, is on its way, arrived, or could not be fetched. */
-export type LoadStatus = 'idle' | 'loading' | 'ready' | 'failed'
+export type { LoadStatus }
 
 export interface LoadedList<T> {
   status: Ref<LoadStatus>
@@ -14,33 +13,9 @@ export interface LoadedList<T> {
   mutate: (change: () => Promise<unknown>) => Promise<void>
 }
 
-/**
- * A list fetched from the API. A failed load keeps the items already shown, and an older answer
- * that arrives after a newer request never replaces it.
- */
+/** A list fetched from the API: what `useLoaded` does, plus changes that refresh it. */
 export function useLoadedList<T>(fetchItems: () => Promise<T[]>): LoadedList<T> {
-  const status = ref<LoadStatus>('idle')
-  const failure = ref('')
-  const items = shallowRef<T[]>([])
-  let latestRequest = 0
-
-  async function load(): Promise<void> {
-    const request = ++latestRequest
-    status.value = 'loading'
-    failure.value = ''
-    try {
-      const loaded = await fetchItems()
-      if (request === latestRequest) {
-        items.value = loaded
-        status.value = 'ready'
-      }
-    } catch (error) {
-      if (request === latestRequest) {
-        status.value = 'failed'
-        failure.value = describeFailure(error)
-      }
-    }
-  }
+  const { status, failure, data: items, load } = useLoaded<T[]>(fetchItems, [])
 
   async function mutate(change: () => Promise<unknown>): Promise<void> {
     await change()
