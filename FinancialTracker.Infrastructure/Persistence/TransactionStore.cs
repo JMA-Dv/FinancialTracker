@@ -28,7 +28,10 @@ public sealed class TransactionStore(FinanceDbContext dbContext) : ITransactionS
         await dbContext.Transactions
             .Where(transaction => transaction.UserId == userId)
             .Where(transaction => filter.AccountId == null || transaction.AccountId == filter.AccountId)
-            .Where(transaction => filter.CategoryId == null || transaction.CategoryId == filter.CategoryId)
+            // Categories have two levels at most, so a parent's children are everything under it.
+            .Where(transaction => filter.CategoryId == null
+                || dbContext.Categories.Any(category => category.Id == transaction.CategoryId
+                    && (category.Id == filter.CategoryId || category.ParentId == filter.CategoryId)))
             .Where(transaction => filter.PayeeId == null || transaction.PayeeId == filter.PayeeId)
             .Where(transaction => filter.From == null || transaction.Date >= filter.From)
             .Where(transaction => filter.To == null || transaction.Date <= filter.To)
