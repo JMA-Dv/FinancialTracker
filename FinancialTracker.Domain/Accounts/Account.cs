@@ -95,15 +95,63 @@ public sealed class Account
     }
 
     /// <summary>
+    /// States the Account's real balance at the end of a date. The difference from what the tracker would otherwise
+    /// show is never income or spending. An Account without one gets its Opening Balance this way: it is just the earliest.
+    /// </summary>
+    /// <param name="balance">The signed balance at the end of the date: negative is money owed.</param>
+    /// <param name="today">Today's date, which a Balance Adjustment can't be after.</param>
+    /// <exception cref="DomainValidationException">The date is in the future, or the balance is more precise than the Currency.</exception>
+    /// <exception cref="DomainConflictException">The Account already has a Balance Adjustment for that date.</exception>
+    public BalanceAdjustment AdjustBalance(DateOnly date, decimal balance, DateOnly today)
+    {
+        EnsureValidMoney(balance, date, today);
+        EnsureDateFree(date, exceptId: null);
+
+        var adjustment = new BalanceAdjustment(Guid.CreateVersion7(), date, balance);
+        balanceAdjustments.Add(adjustment);
+        return adjustment;
+    }
+
+    /// <summary>Replaces the date and stated balance of one of the Account's Balance Adjustments. Nothing changes unless all of it is valid.</summary>
+    /// <exception cref="BalanceAdjustmentNotFoundException">The Account has no such Balance Adjustment.</exception>
+    /// <exception cref="DomainValidationException">The date is in the future, or the balance is more precise than the Currency.</exception>
+    /// <exception cref="DomainConflictException">Another Balance Adjustment already states that date.</exception>
+    public BalanceAdjustment EditBalanceAdjustment(Guid balanceAdjustmentId, DateOnly date, decimal balance, DateOnly today)
+    {
+        var adjustment = GetBalanceAdjustment(balanceAdjustmentId);
+        EnsureValidMoney(balance, date, today);
+        EnsureDateFree(date, exceptId: adjustment.Id);
+
+        adjustment.Restate(date, balance);
+        return adjustment;
+    }
+
+    /// <summary>Removes a Balance Adjustment. With none left, the Account starts at zero again.</summary>
+    /// <exception cref="BalanceAdjustmentNotFoundException">The Account has no such Balance Adjustment.</exception>
+    public void RemoveBalanceAdjustment(Guid balanceAdjustmentId) =>
+        balanceAdjustments.Remove(GetBalanceAdjustment(balanceAdjustmentId));
+
+    /// <summary>
     /// The Account's balance at the end of the date: the latest Balance Adjustment on or before it, or zero
     /// without one, plus the Transactions and Transfers dated after that Adjustment up to the date. Anything dated
     /// on or before the Adjustment is already inside the balance it states. Balances are always derived, never stored.
     /// </summary>
     /// <param name="transactions">Transactions to count. Those on other Accounts are ignored.</param>
     /// <param name="transfers">Transfers to count. Those that don't touch this Account are ignored.</param>
-    public decimal BalanceOn(DateOnly date, IEnumerable<Transaction> transactions, IEnumerable<Transfer> transfers)
+    public decimal BalanceOn(DateOnly date, IEnumerable<Transaction> transactions, IEnumerable<Transfer> transfers) =>
+        BalanceOn(date, balanceAdjustments, transactions, transfers);
+
+    /// <summary>
+    /// What a Balance Adjustment made: its stated balance minus the balance the tracker would have shown at the end of
+    /// its date without it. Positive means the tracker was short of reality.
+    /// </summary>
+    public decimal DifferenceOf(BalanceAdjustment adjustment, IEnumerable<Transaction> transactions, IEnumerable<Transfer> transfers) =>
+        adjustment.Balance - BalanceOn(adjustment.Date, balanceAdjustments.Where(a => a.Id != adjustment.Id), transactions, transfers);
+
+    private decimal BalanceOn(
+        DateOnly date, IEnumerable<BalanceAdjustment> adjustments, IEnumerable<Transaction> transactions, IEnumerable<Transfer> transfers)
     {
-        var adjustment = balanceAdjustments
+        var adjustment = adjustments
             .Where(a => a.Date <= date)
             .MaxBy(a => a.Date);
 
@@ -114,6 +162,21 @@ public sealed class Account
             + transfers.Where(t => Counts(t.Date)).Sum(t => t.EffectOn(Id));
 
         return (adjustment?.Balance ?? 0m) + movedSince;
+    }
+
+    /// <exception cref="BalanceAdjustmentNotFoundException">The Account has no such Balance Adjustment.</exception>
+    public BalanceAdjustment GetBalanceAdjustment(Guid balanceAdjustmentId) =>
+        balanceAdjustments.SingleOrDefault(a => a.Id == balanceAdjustmentId)
+        ?? throw new BalanceAdjustmentNotFoundException(balanceAdjustmentId);
+
+    // Two statements for one date could disagree, and "the latest one" would have no answer.
+    private void EnsureDateFree(DateOnly date, Guid? exceptId)
+    {
+        if (balanceAdjustments.Any(a => a.Date == date && a.Id != exceptId))
+        {
+            throw new DomainConflictException(
+                "Balance Adjustment exists", $"{Name} already has a Balance Adjustment for {date:yyyy-MM-dd}. Edit that one instead.");
+        }
     }
 
     // Balances only include money that has actually moved, and amounts can't be more precise than the Currency.

@@ -15,6 +15,8 @@ public class AccountsController(
     GetAccount getAccount,
     RenameAccount renameAccount,
     ChangeAccountCurrency changeAccountCurrency,
+    GetAccountBalance getAccountBalance,
+    GetAccountHistory getAccountHistory,
     IValidator<CreateAccountRequest> createValidator,
     IValidator<RenameAccountRequest> renameValidator,
     IValidator<ChangeAccountCurrencyRequest> changeCurrencyValidator)
@@ -71,6 +73,24 @@ public class AccountsController(
 
         return AccountResponse.Of(await changeAccountCurrency.ExecuteAsync(User.Id(), id, request.Currency));
     }
+
+    /// <summary>What the Account held at the end of a date that isn't after today.</summary>
+    [HttpGet("{id:guid}/balance")]
+    public async Task<ActionResult<AccountBalanceResponse>> BalanceOn(Guid id, DateOnly? date)
+    {
+        if (date is not { } balanceDate)
+        {
+            ModelState.AddModelError(nameof(date), "A date is required.");
+            return ValidationProblem(ModelState);
+        }
+
+        return new AccountBalanceResponse(balanceDate, await getAccountBalance.ExecuteAsync(User.Id(), id, balanceDate));
+    }
+
+    /// <summary>The Account's Transactions, Transfers and Balance Adjustments, newest first.</summary>
+    [HttpGet("{id:guid}/history")]
+    public async Task<IReadOnlyList<AccountHistoryEntryResponse>> History(Guid id) =>
+        (await getAccountHistory.ExecuteAsync(User.Id(), id)).Select(AccountHistoryEntryResponse.Of).ToList();
 
     /// <summary>A 400 listing every broken rule, or null when the request is valid and can go on to the use case.</summary>
     private async Task<ActionResult?> InvalidAsync<T>(IValidator<T> validator, T request)
@@ -134,6 +154,18 @@ public sealed record CreateAccountRequest(
 /// <param name="Amount">The signed balance at the end of the date: negative is money owed.</param>
 /// <param name="Date">The date tracking starts.</param>
 public sealed record OpeningBalanceRequest(decimal? Amount, DateOnly? Date);
+
+/// <summary>What the Account held at the end of <paramref name="Date"/>.</summary>
+public sealed record AccountBalanceResponse(DateOnly Date, decimal Balance);
+
+/// <param name="Id">The id of the Transaction, Transfer or Balance Adjustment, whichever the Kind says.</param>
+/// <param name="Amount">How it changed the Account's balance, signed. For a Balance Adjustment, the difference it made.</param>
+/// <param name="StatedBalance">The balance a Balance Adjustment states. Null for the others.</param>
+public sealed record AccountHistoryEntryResponse(AccountHistoryKind Kind, Guid Id, DateOnly Date, decimal Amount, decimal? StatedBalance)
+{
+    public static AccountHistoryEntryResponse Of(AccountHistoryEntry entry) =>
+        new(entry.Kind, entry.Id, entry.Date, entry.Amount, entry.StatedBalance);
+}
 
 public sealed record OpeningBalanceResponse(decimal Amount, DateOnly Date);
 

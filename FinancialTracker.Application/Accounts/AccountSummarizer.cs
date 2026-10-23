@@ -1,6 +1,8 @@
 using FinancialTracker.Application.Transactions;
 using FinancialTracker.Application.Transfers;
 using FinancialTracker.Domain.Accounts;
+using FinancialTracker.Domain.Transactions;
+using FinancialTracker.Domain.Transfers;
 
 namespace FinancialTracker.Application.Accounts;
 
@@ -21,4 +23,33 @@ public sealed class AccountSummarizer(ITransactionStore transactions, ITransferS
         var today = clock.Today();
         return accounts.Select(account => AccountSummary.Of(account, allTransactions, allTransfers, today)).ToList();
     }
+
+    /// <summary>A Balance Adjustment of the Account, with the difference it made.</summary>
+    public async Task<BalanceAdjustmentSummary> SummarizeAsync(Guid userId, Account account, BalanceAdjustment adjustment)
+    {
+        var (accountTransactions, accountTransfers) = await MoneyOfAsync(userId, account);
+        return BalanceAdjustmentSummary.Of(account, adjustment, accountTransactions, accountTransfers);
+    }
+
+    /// <summary>The Account's Balance Adjustments, newest first.</summary>
+    public async Task<IReadOnlyList<BalanceAdjustmentSummary>> SummarizeAdjustmentsAsync(Guid userId, Account account)
+    {
+        var (accountTransactions, accountTransfers) = await MoneyOfAsync(userId, account);
+        return account.BalanceAdjustments
+            .OrderByDescending(adjustment => adjustment.Date)
+            .Select(adjustment => BalanceAdjustmentSummary.Of(account, adjustment, accountTransactions, accountTransfers))
+            .ToList();
+    }
+
+    /// <summary>What the Account held at the end of the date.</summary>
+    public async Task<decimal> BalanceOnAsync(Guid userId, Account account, DateOnly date)
+    {
+        var (accountTransactions, accountTransfers) = await MoneyOfAsync(userId, account);
+        return account.BalanceOn(date, accountTransactions, accountTransfers);
+    }
+
+    private async Task<(IReadOnlyList<Transaction> Transactions, IReadOnlyList<Transfer> Transfers)> MoneyOfAsync(
+        Guid userId, Account account) =>
+        (await transactions.SearchAsync(userId, TransactionFilter.ForAccount(account.Id)),
+            await transfers.SearchAsync(userId, account.Id));
 }

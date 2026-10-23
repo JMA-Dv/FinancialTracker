@@ -23,6 +23,13 @@ public static class DependencyInjection
         services.AddScoped<GetAccount>();
         services.AddScoped<RenameAccount>();
         services.AddScoped<ChangeAccountCurrency>();
+        services.AddScoped<CreateBalanceAdjustment>();
+        services.AddScoped<GetBalanceAdjustment>();
+        services.AddScoped<ListBalanceAdjustments>();
+        services.AddScoped<EditBalanceAdjustment>();
+        services.AddScoped<DeleteBalanceAdjustment>();
+        services.AddScoped<GetAccountBalance>();
+        services.AddScoped<GetAccountHistory>();
         services.AddScoped<CreateCategory>();
         services.AddScoped<ListCategories>();
         services.AddScoped<RenameCategory>();
